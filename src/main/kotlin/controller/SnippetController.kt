@@ -1,6 +1,6 @@
 package controller
 
-import domain.SnippetUploadResult
+import domain.snippet.SnippetUploadResult
 import dtos.CreateSnippetDTO
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
