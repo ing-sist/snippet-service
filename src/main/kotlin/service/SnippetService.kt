@@ -1,25 +1,29 @@
 package service
 
+import domain.asset.AssetClient
 import domain.parser.ParserRegistry
 import domain.parser.ValidationResult
 import domain.snippet.SnippetUploadResult
 import dtos.CreateSnippetDTO
-import dtos.Snippet
+import dtos.SnippetMetaData
 import repository.SnippetRepository
 import java.util.UUID
 
 
 class SnippetService(
     private val snippetRepository: SnippetRepository,
-    private val parserRegistry: ParserRegistry
+    private val parserRegistry: ParserRegistry,
+    private val assetClient: AssetClient
 ) {
-    fun createSnippet(snippet: CreateSnippetDTO): SnippetUploadResult {
+    suspend fun createSnippet(snippet: CreateSnippetDTO): SnippetUploadResult {
+        // parser
         val parser = parserRegistry.getParser(snippet.language, snippet.version)
             ?: return SnippetUploadResult.UnsupportedLanguage(
                 language = snippet.language,
                 version = snippet.version
             )
 
+        // validation
         val validation = parser.validate(snippet.code)
 
         if (validation is ValidationResult.Invalid) {
@@ -31,20 +35,31 @@ class SnippetService(
             )
         }
 
-        val snippetToSave = Snippet(
-            id = UUID.randomUUID().toString(),
+        // generate ids
+        val snippetId = UUID.randomUUID().toString()
+        val assetKey = "snippet-$snippetId.ps"
+
+        // upload snippet to bucket
+        assetClient.upload("snippets", assetKey, snippet.code)
+
+        // save snippet to db
+        val snippetToSave = SnippetMetaData(
+            id = snippetId,
             name = snippet.name,
             language = snippet.language,
             version = snippet.version,
-            code = snippet.code
+            description = snippet.description,
+            assetKey = assetKey
         )
 
         val savedSnippet = snippetRepository.saveSnippet(snippetToSave)
+
+        // result
         return SnippetUploadResult.Success(
             snippetId = savedSnippet.id,
             name = savedSnippet.name,
             language = savedSnippet.language,
-            version = savedSnippet.version
+            version = savedSnippet.version,
         )
     }
 }

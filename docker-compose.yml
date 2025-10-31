@@ -12,6 +12,7 @@ services:
       DB_NAME: snippet-db
       DB_HOST: snippet-postgres_db
       DB_PORT: 5432
+      SPRING_PROFILES_ACTIVE: production
 
   db:
     container_name: snippet-postgres_db

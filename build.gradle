@@ -35,6 +35,9 @@ dependencies {
     detektPlugins "io.gitlab.arturbosch.detekt:detekt-formatting:1.23.6"
     implementation("org.springframework.boot:spring-boot-starter-validation")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation "org.flywaydb:flyway-core"
+    implementation "org.flywaydb:flyway-database-postgresql"
 }
 
 kotlin {

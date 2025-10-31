@@ -18,7 +18,7 @@ class SnippetController(
     private val snippetService: SnippetService
 ) {
     @PostMapping("/upload")
-    fun uploadSnippet(
+    suspend fun uploadSnippet(
         @RequestParam("file") file: MultipartFile,
         @RequestParam("name") name: String,
         @RequestParam("language") language: String,

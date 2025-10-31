@@ -1,0 +1,4 @@
+package dtos
+
+class SaveSnippetDataBaseDTO {
+}
