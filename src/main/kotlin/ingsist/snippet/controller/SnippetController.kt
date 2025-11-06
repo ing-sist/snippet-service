@@ -1,7 +1,7 @@
-package controller
+package ingsist.snippet.controller
 
-import domain.snippet.SnippetUploadResult
-import dtos.CreateSnippetDTO
+import ingsist.snippet.domain.snippet.SnippetUploadResult
+import ingsist.snippet.dtos.CreateSnippetDTO
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -9,12 +9,11 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
-import service.SnippetService
+import ingsist.snippet.service.SnippetService
 
 @RestController
 @RequestMapping("/snippets")
 class SnippetController(
-
     private val snippetService: SnippetService
 ) {
     @PostMapping("/upload")

@@ -1,4 +1,4 @@
-package dtos
+package ingsist.snippet.dtos
 
 import jakarta.validation.constraints.NotBlank
 

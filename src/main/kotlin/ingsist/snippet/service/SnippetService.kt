@@ -1,15 +1,16 @@
-package service
+package ingsist.snippet.service
 
-import domain.asset.AssetClient
-import domain.parser.ParserRegistry
-import domain.parser.ValidationResult
-import domain.snippet.SnippetUploadResult
-import dtos.CreateSnippetDTO
-import dtos.SnippetMetaData
-import repository.SnippetRepository
+import ingsist.snippet.domain.SnippetEntity
+import ingsist.snippet.domain.asset.AssetClient
+import ingsist.snippet.domain.parser.ParserRegistry
+import ingsist.snippet.domain.parser.ValidationResult
+import ingsist.snippet.domain.snippet.SnippetUploadResult
+import ingsist.snippet.dtos.CreateSnippetDTO
+import ingsist.snippet.repository.SnippetRepository
+import org.springframework.stereotype.Service
 import java.util.UUID
 
-
+@Service
 class SnippetService(
     private val snippetRepository: SnippetRepository,
     private val parserRegistry: ParserRegistry,
@@ -43,7 +44,7 @@ class SnippetService(
         assetClient.upload("snippets", assetKey, snippet.code)
 
         // save snippet to db
-        val snippetToSave = SnippetMetaData(
+        val snippetToSave = SnippetEntity(
             id = snippetId,
             name = snippet.name,
             language = snippet.language,
