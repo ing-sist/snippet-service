@@ -23,11 +23,11 @@ repositories {
     mavenCentral()
     maven {
         name = "GitHubPackages"
-        url = uri("https://maven.pkg.github.com/ingSis/TU_REPO") // repo donde está publicado
+        url = uri("https://maven.pkg.github.com/ingSis/printscript")
         credentials {
-            username = findProperty("gpr.user") as String?
+            username = findProperty("gpr.user") as String
                     ?: System.getenv("GITHUB_ACTOR")
-            password = findProperty("gpr.key")  as String?
+            password = findProperty("gpr.key")  as String
                     ?: System.getenv("GITHUB_TOKEN")
         }
     }
@@ -49,8 +49,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation "org.flywaydb:flyway-core"
     implementation "org.flywaydb:flyway-database-postgresql"
-
-    implementation("")
 }
 
 kotlin {
