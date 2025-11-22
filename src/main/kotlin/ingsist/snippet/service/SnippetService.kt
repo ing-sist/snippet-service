@@ -133,7 +133,7 @@ class SnippetService(
             assetKey = assetKey
         )
 
-        val savedSnippet = snippetRepository.saveSnippet(snippetToSave)
+        val savedSnippet = snippetRepository.save(snippetToSave)
 
         // result
         return SnippetUploadResult.Success(
