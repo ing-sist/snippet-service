@@ -13,11 +13,13 @@ import ingsist.snippet.repository.SnippetRepository
 import jakarta.transaction.Transactional
 =======
 import ingsist.snippet.domain.SnippetEntity
-import ingsist.snippet.domain.asset.AssetClient
+import ingsist.snippet.asset.AssetClient
 import ingsist.snippet.domain.parser.ParserRegistry
 import ingsist.snippet.domain.parser.ValidationResult
 import ingsist.snippet.domain.snippet.SnippetUploadResult
 import ingsist.snippet.dtos.CreateSnippetDTO
+import ingsist.snippet.dtos.SnippetParserRequestDTO
+import ingsist.snippet.engine.EngineClient
 import ingsist.snippet.repository.SnippetRepository
 >>>>>>> 2d4a23d (feat/useCase#1: created snippet controller, service repo & connected to ps parser (not finished yet))
 import org.springframework.stereotype.Service
@@ -98,6 +100,15 @@ class SnippetService(
 ) {
     suspend fun createSnippet(snippet: CreateSnippetDTO): SnippetUploadResult {
         // parser
+        val request = SnippetParserRequestDTO(
+            code = snippet.code,
+            language = snippet.language,
+            version = snippet.version
+        )
+
+        val validation = EngineClient(request).parse(request)
+
+
         val parser = parserRegistry.getParser(snippet.language, snippet.version)
             ?: return SnippetUploadResult.UnsupportedLanguage(
                 language = snippet.language,
