@@ -1,4 +1,4 @@
-package ingsist.snippet.domain.asset
+package ingsist.snippet.asset
 
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
