@@ -106,17 +106,17 @@ class SnippetService(
             version = snippet.version
         )
 
-        val validation = EngineClient(request).parse(request)
+        val validation = EngineClient("/validate").parse(request)
 
 
-        val parser = parserRegistry.getParser(snippet.language, snippet.version)
-            ?: return SnippetUploadResult.UnsupportedLanguage(
-                language = snippet.language,
-                version = snippet.version
-            )
+//        val parser = parserRegistry.getParser(snippet.language, snippet.version)
+//            ?: return SnippetUploadResult.UnsupportedLanguage(
+//                language = snippet.language,
+//                version = snippet.version
+//            )
 
         // validation
-        val validation = parser.validate(snippet.code)
+//        val validation = parser.validate(snippet.code)
 
         if (validation is ValidationResult.Invalid) {
             return SnippetUploadResult.InvalidSnippet(
