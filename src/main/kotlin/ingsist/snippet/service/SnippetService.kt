@@ -1,16 +1,14 @@
 package ingsist.snippet.service
 
-import ingsist.snippet.domain.SnippetEntity
+
 import ingsist.snippet.domain.asset.AssetClient
 import ingsist.snippet.domain.parser.ParserRegistry
-import ingsist.snippet.domain.parser.ValidationResult
 import ingsist.snippet.domain.snippet.SnippetSubmissionResult
 import ingsist.snippet.dtos.SubmitSnippetDTO
 import ingsist.snippet.dtos.UpdateSnippetDTO
 import ingsist.snippet.repository.SnippetRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
-import java.util.UUID
 
 @Service
 @Transactional

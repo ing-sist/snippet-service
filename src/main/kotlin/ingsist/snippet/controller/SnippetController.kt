@@ -1,5 +1,6 @@
 package ingsist.snippet.controller
 
+import ingsist.snippet.domain.SnippetUploadResult
 import ingsist.snippet.domain.snippet.SnippetSubmissionResult
 import ingsist.snippet.dtos.UpdateSnippetDTO
 import org.springframework.http.HttpStatus
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 import ingsist.snippet.service.SnippetService
+import jakarta.validation.Valid
 
 @RestController
 @RequestMapping("/snippets")
@@ -17,27 +19,25 @@ class SnippetController(
     private val snippetService: SnippetService
 ) {
 
-    @PostMapping("/update")
-    suspend fun updateSnippet(
-        @RequestParam("snippetToUpdateName") name: String,
-        @RequestParam("newContentFile") newContentFile: MultipartFile?,
-        @RequestParam("newName") newName: String?,
-        @RequestParam("newLanguage") newLanguage: String?,
-        @RequestParam("newVersion") newVersion: String?,
-        @RequestParam("newDescription") newDescription: String?,
+    @PostMapping("/update-from-file")
+    suspend fun updateSnippetFromFile(
+        @Valid params: UpdateSnippetDTO,
+        @RequestParam("newCodeFile") newCodeFile: MultipartFile?,
     ) : ResponseEntity<Any> {
-        val code = newContentFile?.bytes?.toString(Charsets.UTF_8)
-        val snippetUpdate = UpdateSnippetDTO(
-            name = name,
-            newName = newName,
-            newCode = code,
-            newLanguage = newLanguage,
-            newVersion = newVersion,
-            newDescription = newDescription
-        )
+        val code = newCodeFile?.bytes?.toString(Charsets.UTF_8)
+        return updateSnippetInline(params, code)
+    }
 
-        val result = snippetService.updateSnippet(snippetUpdate)
+    @PostMapping("/update-inline")
+    suspend fun updateSnippetInline(
+        @Valid params: UpdateSnippetDTO,
+        @RequestParam("newCode") newCode: String?,
+    ) : ResponseEntity<Any> {
+        return updateSnippetLogic(params, newCode)
+    }
 
+    private suspend fun updateSnippetLogic(params: UpdateSnippetDTO, code: String?): ResponseEntity<Any> {
+        val result = snippetService.updateSnippet(params)
         return when (result) {
             is SnippetSubmissionResult.Success -> ResponseEntity.status(HttpStatus.OK).body(result)
             is SnippetSubmissionResult.InvalidSnippet -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
@@ -45,6 +45,4 @@ class SnippetController(
             is SnippetSubmissionResult.ValidatedSnippet -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result)
         }
     }
-
-
 }
