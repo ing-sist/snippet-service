@@ -1,15 +1,5 @@
 package ingsist.snippet.domain
-<<<<<<< HEAD
-import jakarta.persistence.CascadeType
-import jakarta.persistence.Entity
-import jakarta.persistence.FetchType
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
-import jakarta.persistence.OneToMany
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import java.util.Date
 import java.util.UUID
 
@@ -22,8 +12,9 @@ data class SnippetMetadata(
     val name: String,
     val language: String,
     val description: String,
+
     @OneToMany(mappedBy = "snippet", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    val versions: MutableList<SnippetVersion> = mutableListOf(),
+    val versions: MutableList<SnippetVersion> = mutableListOf()
 )
 
 @Entity
@@ -35,23 +26,8 @@ data class SnippetVersion(
     val assetKey: String,
     val createdDate: Date,
     val versionTag: String,
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "snippet_id", nullable = false)
-    val snippet: SnippetMetadata,
+    val snippet: SnippetMetadata
 )
-=======
-import jakarta.persistence.*
-import java.util.UUID
-
-@Entity
-data class SnippetEntity(
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: UUID,
-    val name: String,
-    val language: String,
-    val version: String,
-    val description: String,
-    val assetKey: String,
-)
->>>>>>> 2d4a23d (feat/useCase#1: created snippet controller, service repo & connected to ps parser (not finished yet))

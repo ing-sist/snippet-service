@@ -7,4 +7,5 @@ data class SnippetUploadDTO(
     @field:NotBlank val language: String,
     @field:NotBlank val version: String,
     @field:NotBlank val description: String,
+    val versionTag: String? = null
 )

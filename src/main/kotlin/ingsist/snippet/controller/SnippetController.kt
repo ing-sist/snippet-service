@@ -40,7 +40,7 @@ class SnippetController(
         params: SnippetUploadDTO
     ) : ResponseEntity<Any> {
         val snippet = CreateSnippetDTO(code, params.name, params.language,
-            params.version, params.description)
+            params.version, params.description, params.versionTag ?:"")
         val result = snippetService.createSnippet(snippet)
         return resultHandler(result)
     }

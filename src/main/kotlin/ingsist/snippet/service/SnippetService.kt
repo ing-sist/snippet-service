@@ -1,100 +1,24 @@
 package ingsist.snippet.service
 
-<<<<<<< HEAD
-import ingsist.snippet.asset.AssetService
-import ingsist.snippet.domain.SnippetSubmissionResult
-import ingsist.snippet.domain.ValidationResult
-import ingsist.snippet.domain.processEngineResult
-import ingsist.snippet.dtos.ExecuteReqDTO
-import ingsist.snippet.dtos.SubmitSnippetDTO
-import ingsist.snippet.dtos.UpdateSnippetDTO
-import ingsist.snippet.engine.EngineService
-import ingsist.snippet.repository.SnippetRepository
-import jakarta.transaction.Transactional
-=======
-import ingsist.snippet.domain.SnippetEntity
 import ingsist.snippet.asset.AssetClient
+import ingsist.snippet.domain.SnippetMetadata
 import ingsist.snippet.domain.ValidationResult
 import ingsist.snippet.domain.processEngineResult
 import ingsist.snippet.domain.SnippetUploadResult
+import ingsist.snippet.domain.SnippetVersion
 import ingsist.snippet.dtos.CreateSnippetDTO
 import ingsist.snippet.dtos.ExecuteReqDTO
 import ingsist.snippet.engine.EngineClient
 import ingsist.snippet.repository.SnippetRepository
->>>>>>> 2d4a23d (feat/useCase#1: created snippet controller, service repo & connected to ps parser (not finished yet))
+import ingsist.snippet.repository.SnippetVersionRepository
 import org.springframework.stereotype.Service
+import java.util.Date
 import java.util.UUID
 
 @Service
-<<<<<<< HEAD
-@Transactional
 class SnippetService(
     private val snippetRepository: SnippetRepository,
-    private val assetService: AssetService,
-    private val engineService: EngineService,
-) {
-    suspend fun processSnippet(snippet: SubmitSnippetDTO): ValidationResult {
-        // generate ids
-        val snippetId = UUID.randomUUID()
-
-        // parser
-        val request =
-            ExecuteReqDTO(
-                snippetId = snippetId,
-                content = snippet.code,
-                version = snippet.version,
-            )
-
-        return processEngineResult(engineService.parse(request))
-    }
-
-    suspend fun updateSnippet(
-        snippetUpdate: UpdateSnippetDTO,
-        newCode: String,
-    ): SnippetSubmissionResult {
-        // look for existing snippet
-        val existingSnippet =
-            snippetRepository.findByName(snippetUpdate.name)
-                ?: return SnippetSubmissionResult.InvalidSnippet(
-                    message = listOf("No snippet found with name ${snippetUpdate.name}"),
-                )
-
-        val lastVersion = existingSnippet.versions.last()
-
-        // validate updated snippet
-        val snippet =
-            SubmitSnippetDTO(
-                code = newCode,
-                language = existingSnippet.language,
-                version = lastVersion.versionTag,
-            )
-
-        val validationResult = processSnippet(snippet) // checks if valid
-
-        return when (validationResult) {
-            is ValidationResult.Valid -> {
-                // valid snippet -> update code
-                assetService.update("snippets", lastVersion.assetKey, snippet.code)
-
-                SnippetSubmissionResult.Success(
-                    snippetId = existingSnippet.id,
-                    name = existingSnippet.name,
-                    language = existingSnippet.language,
-                    version = lastVersion.versionTag,
-                )
-            }
-
-            is ValidationResult.Invalid -> {
-                SnippetSubmissionResult.InvalidSnippet(
-                    message = listOf("Snippet update is invalid: ${validationResult.message}"),
-                )
-            }
-        }
-    }
-}
-=======
-class SnippetService(
-    private val snippetRepository: SnippetRepository,
+    private val snippetVersionRepository: SnippetVersionRepository,
     private val assetClient: AssetClient
 ) {
     suspend fun createSnippet(snippet: CreateSnippetDTO): SnippetUploadResult {
@@ -121,27 +45,40 @@ class SnippetService(
                 // upload snippet to bucket
                 assetClient.upload("snippets", assetKey, snippet.code)
 
-                // save snippet to db
-                val snippetToSave = SnippetEntity(
-                    id = snippetId,
-                    name = snippet.name,
-                    language = snippet.language,
-                    version = snippet.version,
-                    description = snippet.description,
-                    assetKey = assetKey
+                val exists = snippetRepository.existsById(snippetId)
+                if(!exists){
+                    // create snippet entity
+                    val snippetMetadata = SnippetMetadata(
+                        id = snippetId,
+                        name = snippet.name,
+                        language = snippet.language,
+                        description = snippet.description,
+                    )
+                    // save snippet md
+                    snippetRepository.save(snippetMetadata)
+                }
+
+                val snippetMetadata = snippetRepository.findById(snippetId).get()
+
+                // save snippet version
+                val snippetToSave = SnippetVersion(
+                    versionId = UUID.randomUUID(),
+                    snippet = snippetMetadata,
+                    assetKey = assetKey,
+                    createdDate = Date(),
+                    versionTag = snippet.versionTag ?: "",
                 )
 
-                val savedSnippet = snippetRepository.save(snippetToSave)
+                snippetVersionRepository.save(snippetToSave)
 
                 // result
                 return SnippetUploadResult.Success(
-                    snippetId = savedSnippet.id,
-                    name = savedSnippet.name,
-                    language = savedSnippet.language,
-                    version = savedSnippet.version,
+                    snippetId = snippetMetadata.id,
+                    name = snippetMetadata.name,
+                    language = snippetMetadata.language,
+                    version = snippet.versionTag ?: "",
                 )
             }
         }
     }
 }
->>>>>>> 2d4a23d (feat/useCase#1: created snippet controller, service repo & connected to ps parser (not finished yet))
