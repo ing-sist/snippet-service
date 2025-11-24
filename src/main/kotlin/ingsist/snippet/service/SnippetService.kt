@@ -1,20 +1,24 @@
 package ingsist.snippet.service
 
-import ingsist.snippet.domain.SnippetEntity
 import ingsist.snippet.asset.AssetClient
+import ingsist.snippet.domain.SnippetMetadata
 import ingsist.snippet.domain.ValidationResult
 import ingsist.snippet.domain.processEngineResult
 import ingsist.snippet.domain.SnippetUploadResult
+import ingsist.snippet.domain.SnippetVersion
 import ingsist.snippet.dtos.CreateSnippetDTO
 import ingsist.snippet.dtos.ExecuteReqDTO
 import ingsist.snippet.engine.EngineClient
 import ingsist.snippet.repository.SnippetRepository
+import ingsist.snippet.repository.SnippetVersionRepository
 import org.springframework.stereotype.Service
+import java.util.Date
 import java.util.UUID
 
 @Service
 class SnippetService(
     private val snippetRepository: SnippetRepository,
+    private val snippetVersionRepository: SnippetVersionRepository,
     private val assetClient: AssetClient
 ) {
     suspend fun createSnippet(snippet: CreateSnippetDTO): SnippetUploadResult {
@@ -41,24 +45,38 @@ class SnippetService(
                 // upload snippet to bucket
                 assetClient.upload("snippets", assetKey, snippet.code)
 
-                // save snippet to db
-                val snippetToSave = SnippetEntity(
-                    id = snippetId,
-                    name = snippet.name,
-                    language = snippet.language,
-                    version = snippet.version,
-                    description = snippet.description,
-                    assetKey = assetKey
+                val exists = snippetRepository.existsById(snippetId)
+                if(!exists){
+                    // create snippet entity
+                    val snippetMetadata = SnippetMetadata(
+                        id = snippetId,
+                        name = snippet.name,
+                        language = snippet.language,
+                        description = snippet.description,
+                    )
+                    // save snippet md
+                    snippetRepository.save(snippetMetadata)
+                }
+
+                val snippetMetadata = snippetRepository.findById(snippetId).get()
+
+                // save snippet version
+                val snippetToSave = SnippetVersion(
+                    versionId = UUID.randomUUID(),
+                    snippet = snippetMetadata,
+                    assetKey = assetKey,
+                    createdDate = Date(),
+                    versionTag = snippet.versionTag ?: "",
                 )
 
-                val savedSnippet = snippetRepository.save(snippetToSave)
+                snippetVersionRepository.save(snippetToSave)
 
                 // result
                 return SnippetUploadResult.Success(
-                    snippetId = savedSnippet.id,
-                    name = savedSnippet.name,
-                    language = savedSnippet.language,
-                    version = savedSnippet.version,
+                    snippetId = snippetMetadata.id,
+                    name = snippetMetadata.name,
+                    language = snippetMetadata.language,
+                    version = snippet.versionTag ?: "",
                 )
             }
         }
