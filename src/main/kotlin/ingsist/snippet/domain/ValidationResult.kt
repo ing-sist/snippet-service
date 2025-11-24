@@ -1,4 +1,4 @@
-package ingsist.snippet.domain.parser
+package ingsist.snippet.domain
 
 sealed class ValidationResult {
     data class Valid(
@@ -6,9 +6,6 @@ sealed class ValidationResult {
     ): ValidationResult()
 
     data class Invalid(
-        val ruleViolated: String,
-        val line: Int,
-        val column: Int,
-        val message: String
+        val message: List<String>
     ): ValidationResult()
 }

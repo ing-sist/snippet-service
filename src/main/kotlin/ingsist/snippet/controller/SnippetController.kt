@@ -1,6 +1,6 @@
 package ingsist.snippet.controller
 
-import ingsist.snippet.domain.snippet.SnippetUploadResult
+import ingsist.snippet.domain.SnippetUploadResult
 import ingsist.snippet.dtos.CreateSnippetDTO
 import ingsist.snippet.dtos.SnippetUploadDTO
 import org.springframework.http.HttpStatus
@@ -49,7 +49,6 @@ class SnippetController(
         return when (result) {
             is SnippetUploadResult.Success -> ResponseEntity.status(HttpStatus.CREATED).body(result)
             is SnippetUploadResult.InvalidSnippet -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
-            is SnippetUploadResult.UnsupportedLanguage -> ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result)
         }
     }
 }

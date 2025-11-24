@@ -8,6 +8,4 @@ import org.springframework.stereotype.Repository
 
 @Repository
 
-interface SnippetRepository : JpaRepository<SnippetEntity, String> {
-
-}
+interface SnippetRepository : JpaRepository<SnippetEntity, String>

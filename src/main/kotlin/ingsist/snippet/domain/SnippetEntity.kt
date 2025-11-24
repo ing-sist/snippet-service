@@ -1,11 +1,12 @@
 package ingsist.snippet.domain
 import jakarta.persistence.*
+import java.util.UUID
 
 @Entity
 data class SnippetEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: String,
+    val id: UUID,
     val name: String,
     val language: String,
     val version: String,
