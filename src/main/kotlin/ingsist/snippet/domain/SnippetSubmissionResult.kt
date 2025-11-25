@@ -13,4 +13,6 @@ sealed class SnippetSubmissionResult {
     data class InvalidSnippet(
         val message: List<String>,
     ) : SnippetSubmissionResult()
+
+    companion object
 }

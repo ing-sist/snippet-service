@@ -49,13 +49,13 @@ class AssetService(private val assetRestClient: RestClient) : AssetServiceInterf
         container: String,
         key: String,
     ): String {
-      //        val response =
+        //        val response =
         assetRestClient.get()
             .uri("/v1/asset/{container}/{key}", container, key)
             .retrieve()
             .toEntity(String::class.java)
-            
-            return TODO()
+
+        return TODO()
 //        return response.body ?: throw RuntimeException(
 //            "Asset not found in " +
 //                "$container with key $key",
