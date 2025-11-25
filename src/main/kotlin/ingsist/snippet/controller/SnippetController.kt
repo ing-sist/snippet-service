@@ -2,6 +2,9 @@ package ingsist.snippet.controller
 
 import ingsist.snippet.domain.SnippetSubmissionResult
 import ingsist.snippet.dtos.UpdateSnippetDTO
+import ingsist.snippet.domain.SnippetUploadResult
+import ingsist.snippet.dtos.SnippetUploadDTO
+import ingsist.snippet.dtos.SubmitSnippetDTO
 import ingsist.snippet.service.SnippetService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -47,6 +50,44 @@ class SnippetController(
             is SnippetSubmissionResult.Success -> ResponseEntity.status(HttpStatus.CREATED).body(result)
             is SnippetSubmissionResult.InvalidSnippet ->
                 ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
+    @PostMapping("/upload-from-file")
+    suspend fun uploadSnippetFromFile(
+        @RequestParam("file") file: MultipartFile,
+        @Valid params: SnippetUploadDTO,
+    ): ResponseEntity<Any> {
+        val code = file.bytes.toString(Charsets.UTF_8)
+        return uploadSnippetLogic(code, params)
+    }
+
+    @PostMapping("/upload-inline")
+    suspend fun uploadSnippetInline(
+        @RequestParam("code") code: String,
+        @Valid params: SnippetUploadDTO,
+    ): ResponseEntity<Any> {
+        return uploadSnippetLogic(code, params)
+    }
+
+    private suspend fun uploadSnippetLogic(
+        code: String,
+        params: SnippetUploadDTO,
+    ): ResponseEntity<Any> {
+        val snippet =
+            SubmitSnippetDTO(
+                code,
+                params.name,
+                params.language,
+                params.version,
+                params.description,
+                params.versionTag ?: "",
+            )
+        val result = snippetService.createSnippet(snippet)
+        return resultHandler(result)
+    }
+
+    private suspend fun resultHandler(result: SnippetUploadResult): ResponseEntity<Any> {
+        return when (result) {
+            is SnippetUploadResult.Success -> ResponseEntity.status(HttpStatus.CREATED).body(result)
+            is SnippetUploadResult.InvalidSnippet -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
         }
     }
 }
