@@ -2,15 +2,15 @@ package ingsist.snippet.domain
 
 import java.util.UUID
 
-sealed class SnippetUploadResult {
+sealed class SnippetSubmissionResult {
     data class Success(
         val snippetId: UUID,
         val name: String,
         val language: String,
         val version: String,
-    ) : SnippetUploadResult()
+    ) : SnippetSubmissionResult()
 
     data class InvalidSnippet(
         val message: List<String>
-    ) : SnippetUploadResult()
+    ) : SnippetSubmissionResult()
 }
