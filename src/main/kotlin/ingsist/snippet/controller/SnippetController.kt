@@ -1,6 +1,6 @@
 package ingsist.snippet.controller
 
-import ingsist.snippet.domain.SnippetUploadResult
+import ingsist.snippet.domain.SnippetSubmissionResult
 import ingsist.snippet.dtos.SnippetUploadDTO
 import ingsist.snippet.dtos.SubmitSnippetDTO
 import ingsist.snippet.service.SnippetService
@@ -18,6 +18,31 @@ import org.springframework.web.multipart.MultipartFile
 class SnippetController(
     private val snippetService: SnippetService,
 ) {
+    @PostMapping("/update-from-file")
+    suspend fun updateSnippetFromFile(
+        @Valid snippetName: String,
+        @RequestParam("newCodeFile") newCodeFile: MultipartFile,
+    ): ResponseEntity<Any> {
+        val code = newCodeFile.bytes.toString(Charsets.UTF_8)
+        return updateSnippetInline(snippetName, code)
+    }
+
+    @PostMapping("/update-inline")
+    suspend fun updateSnippetInline(
+        @Valid snippetName: String,
+        @RequestParam("newCode") newCode: String,
+    ): ResponseEntity<Any> {
+        return updateSnippetLogic(snippetName, newCode)
+    }
+
+    private suspend fun updateSnippetLogic(
+        snippetName: String,
+        code: String,
+    ): ResponseEntity<Any> {
+        val result = snippetService.updateSnippet(snippetName, code)
+        return resultHandler(result)
+    }
+
     @PostMapping("/upload-from-file")
     suspend fun uploadSnippetFromFile(
         @RequestParam("file") file: MultipartFile,
@@ -52,10 +77,11 @@ class SnippetController(
         return resultHandler(result)
     }
 
-    private suspend fun resultHandler(result: SnippetUploadResult): ResponseEntity<Any> {
+    private suspend fun resultHandler(result: SnippetSubmissionResult): ResponseEntity<Any> {
         return when (result) {
-            is SnippetUploadResult.Success -> ResponseEntity.status(HttpStatus.CREATED).body(result)
-            is SnippetUploadResult.InvalidSnippet -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
+            is SnippetSubmissionResult.Success -> ResponseEntity.status(HttpStatus.CREATED).body(result)
+            is SnippetSubmissionResult.InvalidSnippet ->
+                ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
         }
     }
 }

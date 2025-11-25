@@ -2,7 +2,7 @@ package ingsist.snippet.service
 
 import ingsist.snippet.asset.AssetService
 import ingsist.snippet.domain.SnippetMetadata
-import ingsist.snippet.domain.SnippetUploadResult
+import ingsist.snippet.domain.SnippetSubmissionResult
 import ingsist.snippet.domain.SnippetVersion
 import ingsist.snippet.domain.ValidationResult
 import ingsist.snippet.domain.processEngineResult
@@ -24,31 +24,75 @@ class SnippetService(
     private val assetService: AssetService,
     private val engineService: EngineService,
 ) {
-    suspend fun processSnippet(
-        snippet: SubmitSnippetDTO,
-        snippetId: UUID,
-    ): ValidationResult {
+    private suspend fun validateSnippet(snippet: ExecuteReqDTO): ValidationResult {
         // parser
-        val request =
-            ExecuteReqDTO(
-                snippetId = snippetId,
-                content = snippet.code,
-                version = snippet.version,
-            )
-
-        return processEngineResult(engineService.parse(request))
+        return processEngineResult(engineService.parse(snippet))
     }
 
-    suspend fun createSnippet(snippet: SubmitSnippetDTO): SnippetUploadResult {
+    suspend fun updateSnippet(
+        snippetName: String,
+        newCode: String,
+    ): SnippetSubmissionResult {
+        // look for existing snippet
+        val existingSnippet = snippetRepository.findByName(snippetName)
+
+        return if (existingSnippet == null) {
+            SnippetSubmissionResult.InvalidSnippet(
+                message = listOf("No snippet found with name $snippetName"),
+            )
+        } else {
+            val lastVersion = existingSnippet.versions.last()
+
+            // validate updated snippet
+            val snippet =
+                ExecuteReqDTO(
+                    code = newCode,
+                    language = existingSnippet.language,
+                    version = lastVersion.versionTag,
+                    snippetId = existingSnippet.id,
+                )
+
+            val validationResult = validateSnippet(snippet) // checks if valid
+
+            when (validationResult) {
+                is ValidationResult.Valid -> {
+                    // valid snippet -> update code
+                    assetService.update("snippets", lastVersion.assetKey, snippet.code)
+
+                    SnippetSubmissionResult.Success(
+                        snippetId = existingSnippet.id,
+                        name = existingSnippet.name,
+                        language = existingSnippet.language,
+                        version = lastVersion.versionTag,
+                    )
+                }
+
+                is ValidationResult.Invalid -> {
+                    SnippetSubmissionResult.InvalidSnippet(
+                        message = validationResult.message,
+                    )
+                }
+            }
+        }
+    }
+
+    suspend fun createSnippet(snippet: SubmitSnippetDTO): SnippetSubmissionResult {
         // generate ids
         val snippetId = UUID.randomUUID()
         val assetKey = "snippet-$snippetId.ps"
 
-        val validationResult = processSnippet(snippet, snippetId)
+        val request =
+            ExecuteReqDTO(
+                code = snippet.code,
+                language = snippet.language,
+                version = snippet.version,
+                snippetId = snippetId,
+            )
+        val validationResult = validateSnippet(request)
 
         when (validationResult) {
             is ValidationResult.Invalid -> {
-                return SnippetUploadResult.InvalidSnippet(
+                return SnippetSubmissionResult.InvalidSnippet(
                     message = validationResult.message,
                 )
             }
@@ -85,7 +129,7 @@ class SnippetService(
                 snippetVersionRepository.save(snippetToSave)
 
                 // result
-                return SnippetUploadResult.Success(
+                return SnippetSubmissionResult.Success(
                     snippetId = snippetMetadata.id,
                     name = snippetMetadata.name,
                     language = snippetMetadata.language,
