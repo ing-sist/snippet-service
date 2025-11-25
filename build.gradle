@@ -120,7 +120,7 @@ tasks.register("installGitHooks", Exec) {
     commandLine "bash", "./scripts/bootstrap.sh"
 }
 
-gradle.projectsEvaluated {
-    tasks.getByName("build").dependsOn("installGitHooks")
+tasks.named("build"){
+    dependsOn("installGitHooks")
 }
 
