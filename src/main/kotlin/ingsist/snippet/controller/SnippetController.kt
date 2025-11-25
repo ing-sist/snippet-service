@@ -1,7 +1,6 @@
 package ingsist.snippet.controller
 
-import ingsist.snippet.domain.SnippetUploadResult
-import ingsist.snippet.domain.snippet.SnippetSubmissionResult
+import ingsist.snippet.domain.SnippetSubmissionResult
 import ingsist.snippet.dtos.UpdateSnippetDTO
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -22,27 +21,29 @@ class SnippetController(
     @PostMapping("/update-from-file")
     suspend fun updateSnippetFromFile(
         @Valid params: UpdateSnippetDTO,
-        @RequestParam("newCodeFile") newCodeFile: MultipartFile?,
+        @RequestParam("newCodeFile") newCodeFile: MultipartFile,
     ) : ResponseEntity<Any> {
-        val code = newCodeFile?.bytes?.toString(Charsets.UTF_8)
+        val code = newCodeFile.bytes.toString(Charsets.UTF_8)
         return updateSnippetInline(params, code)
     }
 
     @PostMapping("/update-inline")
     suspend fun updateSnippetInline(
         @Valid params: UpdateSnippetDTO,
-        @RequestParam("newCode") newCode: String?,
+        @RequestParam("newCode") newCode: String,
     ) : ResponseEntity<Any> {
         return updateSnippetLogic(params, newCode)
     }
 
-    private suspend fun updateSnippetLogic(params: UpdateSnippetDTO, code: String?): ResponseEntity<Any> {
-        val result = snippetService.updateSnippet(params)
+    private suspend fun updateSnippetLogic(params: UpdateSnippetDTO, code: String): ResponseEntity<Any> {
+        val result = snippetService.updateSnippet(params, code)
+        return resultHandler(result)
+    }
+
+    private suspend fun resultHandler(result: SnippetSubmissionResult): ResponseEntity<Any> {
         return when (result) {
-            is SnippetSubmissionResult.Success -> ResponseEntity.status(HttpStatus.OK).body(result)
+            is SnippetSubmissionResult.Success -> ResponseEntity.status(HttpStatus.CREATED).body(result)
             is SnippetSubmissionResult.InvalidSnippet -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
-            is SnippetSubmissionResult.UnsupportedLanguage -> ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result)
-            is SnippetSubmissionResult.ValidatedSnippet -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result)
         }
     }
 }
