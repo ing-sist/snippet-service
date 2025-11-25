@@ -8,7 +8,7 @@ import ingsist.snippet.domain.ValidationResult
 import ingsist.snippet.domain.processEngineResult
 import ingsist.snippet.dtos.ExecuteReqDTO
 import ingsist.snippet.dtos.SubmitSnippetDTO
-import ingsist.snippet.engine.EngineClient
+import ingsist.snippet.engine.EngineService
 import ingsist.snippet.repository.SnippetRepository
 import ingsist.snippet.repository.SnippetVersionRepository
 import jakarta.transaction.Transactional
@@ -22,6 +22,7 @@ class SnippetService(
     private val snippetRepository: SnippetRepository,
     private val snippetVersionRepository: SnippetVersionRepository,
     private val assetService: AssetService,
+    private val engineService: EngineService,
 ) {
     suspend fun processSnippet(
         snippet: SubmitSnippetDTO,
@@ -35,7 +36,7 @@ class SnippetService(
                 version = snippet.version,
             )
 
-        return processEngineResult(EngineClient("/validate").parse(request))
+        return processEngineResult(engineService.parse(request))
     }
 
     suspend fun createSnippet(snippet: SubmitSnippetDTO): SnippetUploadResult {

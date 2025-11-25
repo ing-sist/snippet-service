@@ -14,9 +14,7 @@ class EngineService(private val engineRestClient: RestClient) : EngineServiceInt
                 .body(snippet)
                 .retrieve()
                 .toEntity(ExecuteResDTO::class.java)
-        return response.body ?: throw Exception(
-            "Engine parse failed with status code: " +
-                "${response.statusCode}",
-        )
+        return response.body ?: TODO()
+//        throw Exception("Engine parse failed with status code: " + "${response.statusCode}",)
     }
 }
