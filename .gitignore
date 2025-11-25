@@ -39,4 +39,5 @@ out/
 ### Kotlin ###
 .kotlin
 
+.env
 .DS_Store

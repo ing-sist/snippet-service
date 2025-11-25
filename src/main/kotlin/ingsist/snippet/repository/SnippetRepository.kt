@@ -7,7 +7,9 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
-interface SnippetRepository : JpaRepository<SnippetMetadata, UUID>
+interface SnippetRepository : JpaRepository<SnippetMetadata, UUID> {
+    suspend fun findByName(name: String): SnippetMetadata?
+}
 
 @Repository
 interface SnippetVersionRepository : JpaRepository<SnippetVersion, UUID>
