@@ -11,6 +11,6 @@ sealed class SnippetUploadResult {
     ) : SnippetUploadResult()
 
     data class InvalidSnippet(
-        val message: List<String>
+        val message: List<String>,
     ) : SnippetUploadResult()
 }
