@@ -1,8 +1,10 @@
 package ingsist.snippet.controller
 
 import ingsist.snippet.domain.SnippetUploadResult
-import ingsist.snippet.dtos.CreateSnippetDTO
 import ingsist.snippet.dtos.SnippetUploadDTO
+import ingsist.snippet.dtos.SubmitSnippetDTO
+import ingsist.snippet.service.SnippetService
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -10,19 +12,17 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
-import ingsist.snippet.service.SnippetService
-import jakarta.validation.Valid
 
 @RestController
 @RequestMapping("/snippets")
 class SnippetController(
-    private val snippetService: SnippetService
+    private val snippetService: SnippetService,
 ) {
     @PostMapping("/upload-from-file")
     suspend fun uploadSnippetFromFile(
         @RequestParam("file") file: MultipartFile,
-        @Valid params: SnippetUploadDTO
-    ) : ResponseEntity<Any> {
+        @Valid params: SnippetUploadDTO,
+    ): ResponseEntity<Any> {
         val code = file.bytes.toString(Charsets.UTF_8)
         return uploadSnippetLogic(code, params)
     }
@@ -30,17 +30,24 @@ class SnippetController(
     @PostMapping("/upload-inline")
     suspend fun uploadSnippetInline(
         @RequestParam("code") code: String,
-        @Valid params: SnippetUploadDTO
-    ) : ResponseEntity<Any> {
+        @Valid params: SnippetUploadDTO,
+    ): ResponseEntity<Any> {
         return uploadSnippetLogic(code, params)
     }
 
     private suspend fun uploadSnippetLogic(
         code: String,
-        params: SnippetUploadDTO
-    ) : ResponseEntity<Any> {
-        val snippet = CreateSnippetDTO(code, params.name, params.language,
-            params.version, params.description, params.versionTag ?:"")
+        params: SnippetUploadDTO,
+    ): ResponseEntity<Any> {
+        val snippet =
+            SubmitSnippetDTO(
+                code,
+                params.name,
+                params.language,
+                params.version,
+                params.description,
+                params.versionTag ?: "",
+            )
         val result = snippetService.createSnippet(snippet)
         return resultHandler(result)
     }
