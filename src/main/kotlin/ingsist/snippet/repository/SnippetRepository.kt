@@ -8,7 +8,7 @@ import java.util.UUID
 
 @Repository
 interface SnippetRepository : JpaRepository<SnippetMetadata, UUID> {
-    fun findByName(name: String): SnippetMetadata?
+    suspend fun findByName(name: String): SnippetMetadata?
 }
 
 @Repository
