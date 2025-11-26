@@ -6,17 +6,13 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.web.client.RestClient
 
 @Configuration
-class RestClientConfig(
-    @Value("\${service.asset.url}") private val assetUrl: String,
-    @Value("\${service.engine.url}") private val engineUrl: String,
-    @Value("\${service.auth.url}") private val authUrl: String,
-) {
+class RestClientConfig {
     @Bean
     fun assetRestClient(
         @Value("\${external.asset.url}") url: String,
     ): RestClient {
         return RestClient.builder()
-            .baseUrl(assetUrl)
+            .baseUrl(url)
             .build()
     }
 
@@ -25,7 +21,7 @@ class RestClientConfig(
         @Value("\${external.engine.url}") url: String,
     ): RestClient {
         return RestClient.builder()
-            .baseUrl(engineUrl)
+            .baseUrl(url)
             .build()
     }
 
@@ -34,7 +30,7 @@ class RestClientConfig(
         @Value("\${external.auth.url}") url: String,
     ): RestClient {
         return RestClient.builder()
-            .baseUrl(authUrl)
+            .baseUrl(url)
             .build()
     }
 }
