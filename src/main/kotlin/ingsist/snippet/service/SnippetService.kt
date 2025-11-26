@@ -57,7 +57,7 @@ class SnippetService(
             when (validationResult) {
                 is ValidationResult.Valid -> {
                     // valid snippet -> update code
-                    assetService.update("snippets", lastVersion.assetKey, snippet.code)
+                    assetService.upload("snippets", lastVersion.assetKey, snippet.code)
 
                     SnippetSubmissionResult.Success(
                         snippetId = existingSnippet.id,
