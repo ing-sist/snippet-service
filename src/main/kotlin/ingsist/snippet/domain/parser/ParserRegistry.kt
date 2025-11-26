@@ -1,5 +1,8 @@
-package domain.parser
+package ingsist.snippet.domain.parser
 
+import org.springframework.stereotype.Component
+
+@Component
 class ParserRegistry {
     private val parsers: MutableMap<Pair<String, String>, Parser> = mutableMapOf()
 

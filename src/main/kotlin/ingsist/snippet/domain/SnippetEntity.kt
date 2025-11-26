@@ -1,4 +1,5 @@
 package ingsist.snippet.domain
+<<<<<<< HEAD
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -38,3 +39,18 @@ data class SnippetVersion(
     @JoinColumn(name = "snippet_id", nullable = false)
     val snippet: SnippetMetadata,
 )
+=======
+import jakarta.persistence.*
+
+@Entity
+data class SnippetEntity(
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: String,
+    val name: String,
+    val language: String,
+    val version: String,
+    val description: String,
+    val assetKey: String,
+)
+>>>>>>> 2d4a23d (feat/useCase#1: created snippet controller, service repo & connected to ps parser (not finished yet))

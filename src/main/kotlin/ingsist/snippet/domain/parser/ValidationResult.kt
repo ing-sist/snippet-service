@@ -1,4 +1,4 @@
-package domain.parser
+package ingsist.snippet.domain.parser
 
 sealed class ValidationResult {
     data class Valid(

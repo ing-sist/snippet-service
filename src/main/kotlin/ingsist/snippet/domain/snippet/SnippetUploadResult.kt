@@ -1,4 +1,4 @@
-package domain.snippet
+package ingsist.snippet.domain.snippet
 
 sealed class SnippetUploadResult {
     data class Success(
