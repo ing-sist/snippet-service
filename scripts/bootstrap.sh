@@ -1,18 +1,12 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
 
-echo "Ejecuntando pre-commit ..."
+if git config --get core.hooksPath > /dev/null; then
+  echo "Hooks ya instalados previamente"
+  exit 0
+fi
 
-echo "Spotless: aplicando formato..."
-./gradlew spotlessApply
-echo "Actualizando archivos..."
-git add -A
+git config core.hooksPath .githooks
+chmod +x .githooks/* 2>/dev/null || true
 
-echo "Check ..."
-./gradlew check
-
-echo "Compilando ..."
-./gradlew build
-
-echo "Todo OK. Podes commitear"
-exit 0
+echo "Hooks configurados en .githooks/"
