@@ -16,4 +16,10 @@ interface AssetServiceInterface {
         container: String,
         key: String,
     ): String
+
+    fun update(
+        container: String,
+        key: String,
+        content: String,
+    ): String
 }
