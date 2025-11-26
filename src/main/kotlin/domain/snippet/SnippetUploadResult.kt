@@ -5,7 +5,7 @@ sealed class SnippetUploadResult {
         val snippetId: String,
         val name: String,
         val language: String,
-        val version: String
+        val version: String,
     ) : SnippetUploadResult()
 
     data class InvalidSnippet(

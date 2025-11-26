@@ -2,7 +2,7 @@ package dtos
 
 import jakarta.validation.constraints.NotBlank
 
-class CreateSnippetDTO(
+data class CreateSnippetDTO(
     @field:NotBlank val code: String,
     @field:NotBlank val name: String,
     @field:NotBlank val language: String,

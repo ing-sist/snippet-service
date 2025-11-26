@@ -1,9 +1,11 @@
 package dtos
 
-data class Snippet(
+
+data class SnippetMetaData(
     val id: String,
     val name: String,
     val language: String,
     val version: String,
-    val code: String
+    val description: String,
+    val assetKey: String,
 )
