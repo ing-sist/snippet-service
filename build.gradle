@@ -21,16 +21,7 @@ java {
 
 repositories {
     mavenCentral()
-    maven {
-        name = "GitHubPackages"
-        url = uri("https://maven.pkg.github.com/ingSis/printscript")
-        credentials {
-            username = findProperty("gpr.user") as String
-                    ?: System.getenv("GITHUB_ACTOR")
-            password = findProperty("gpr.key")  as String
-                    ?: System.getenv("GITHUB_TOKEN")
-        }
-    }
+    // Despues agregamos aca los packages que vamos a necesitar
 }
 
 
