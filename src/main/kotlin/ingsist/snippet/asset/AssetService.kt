@@ -11,13 +11,14 @@ class AssetService(private val assetRestClient: RestClient) : AssetServiceInterf
         content: String,
     ): String {
         val response =
-            assetRestClient.post()
+            assetRestClient.put()
                 .uri("/v1/asset/{container}/{key}", container, key)
                 .body(content)
                 .retrieve()
                 .toEntity(String::class.java)
         return when (response.statusCode.value()) {
             201 -> "Asset uploaded successfully in $container with key $key"
+            200 -> "Asset updated successfully in $container with key $key"
             else -> TODO()
 //            else -> throw RuntimeException(
 //                "Asset upload failed with status code:" +
@@ -49,37 +50,16 @@ class AssetService(private val assetRestClient: RestClient) : AssetServiceInterf
         container: String,
         key: String,
     ): String {
-        //        val response =
-        assetRestClient.get()
-            .uri("/v1/asset/{container}/{key}", container, key)
-            .retrieve()
-            .toEntity(String::class.java)
+        val response =
+            assetRestClient.get()
+                .uri("/v1/asset/{container}/{key}", container, key)
+                .retrieve()
+                .toEntity(String::class.java)
 
         return TODO()
 //        return response.body ?: throw RuntimeException(
 //            "Asset not found in " +
 //                "$container with key $key",
 //        )
-    }
-
-    override fun update(
-        container: String,
-        key: String,
-        content: String,
-    ): String {
-        val response =
-            assetRestClient.patch()
-                .uri("/v1/asset/{container}/{key}", container, key)
-                .body(content)
-                .retrieve()
-                .toEntity(String::class.java)
-        return when (response.statusCode.value()) {
-            201 -> "Asset updated successfully in $container with key $key"
-            else -> TODO()
-//            else -> throw RuntimeException(
-//                "Asset updated failed with status code:" +
-//                    " ${response.statusCode}",
-//            )
-        }
     }
 }

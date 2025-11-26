@@ -21,9 +21,17 @@ java {
 
 repositories {
     mavenCentral()
-    // Despues agregamos aca los packages que vamos a necesitar
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/ingSis/printscript")
+        credentials {
+            username = findProperty("gpr.user") as String
+                    ?: System.getenv("GITHUB_ACTOR")
+            password = findProperty("gpr.key")  as String
+                    ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
 }
-
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'

@@ -1,5 +1,6 @@
 package ingsist.snippet.config
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.client.RestClient
@@ -7,23 +8,29 @@ import org.springframework.web.client.RestClient
 @Configuration
 class RestClientConfig {
     @Bean
-    fun assetRestClient(): RestClient {
+    fun assetRestClient(
+        @Value("\${external.asset.url}") url: String,
+    ): RestClient {
         return RestClient.builder()
-            .baseUrl("http://localhost:8080")
+            .baseUrl(url)
             .build()
     }
 
     @Bean
-    fun engineRestClient(): RestClient {
+    fun engineRestClient(
+        @Value("\${external.engine.url}") url: String,
+    ): RestClient {
         return RestClient.builder()
-            .baseUrl("http://localhost:8081")
+            .baseUrl(url)
             .build()
     }
 
     @Bean
-    fun authRestClient(): RestClient {
+    fun authRestClient(
+        @Value("\${external.auth.url}") url: String,
+    ): RestClient {
         return RestClient.builder()
-            .baseUrl("http://localhost:8082")
+            .baseUrl(url)
             .build()
     }
 }
