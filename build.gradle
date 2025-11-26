@@ -131,3 +131,12 @@ detekt {
     }
     ignoreFailures = false
 }
+
+tasks.register("installGitHooks", Exec) {
+    commandLine "bash", "./scripts/bootstrap.sh"
+}
+
+tasks.named("build"){
+    dependsOn("installGitHooks")
+}
+
