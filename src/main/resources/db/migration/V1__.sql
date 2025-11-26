@@ -4,6 +4,7 @@ CREATE TABLE snippet
     name        VARCHAR(255),
     language    VARCHAR(255),
     description VARCHAR(255),
+    owner_id    VARCHAR(255),
     CONSTRAINT pk_snippet PRIMARY KEY (id)
 );
 

@@ -1,68 +1,58 @@
 package ingsist.snippet.controller
 
-import ingsist.snippet.domain.SnippetSubmissionResult
+import ingsist.snippet.dtos.ShareSnippetDTO
+import ingsist.snippet.dtos.SnippetResponseDTO
 import ingsist.snippet.dtos.SnippetUploadDTO
 import ingsist.snippet.dtos.SubmitSnippetDTO
 import ingsist.snippet.service.SnippetService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
+import java.util.UUID
 
 @RestController
 @RequestMapping("/snippets")
 class SnippetController(
     private val snippetService: SnippetService,
 ) {
-    @PostMapping("/update-from-file")
-    suspend fun updateSnippetFromFile(
-        @Valid snippetName: String,
-        @RequestParam("newCodeFile") newCodeFile: MultipartFile,
-    ): ResponseEntity<Any> {
-        val code = newCodeFile.bytes.toString(Charsets.UTF_8)
-        return updateSnippetInline(snippetName, code)
-    }
-
-    @PostMapping("/update-inline")
-    suspend fun updateSnippetInline(
-        @Valid snippetName: String,
-        @RequestParam("newCode") newCode: String,
-    ): ResponseEntity<Any> {
-        return updateSnippetLogic(snippetName, newCode)
-    }
-
-    private suspend fun updateSnippetLogic(
-        snippetName: String,
-        code: String,
-    ): ResponseEntity<Any> {
-        val result = snippetService.updateSnippet(snippetName, code)
-        return resultHandler(result)
-    }
-
+    // US #1: Crear snippet (Upload file)
     @PostMapping("/upload-from-file")
-    suspend fun uploadSnippetFromFile(
+    fun uploadSnippetFromFile(
         @RequestParam("file") file: MultipartFile,
         @Valid params: SnippetUploadDTO,
+        principal: JwtAuthenticationToken,
     ): ResponseEntity<Any> {
         val code = file.bytes.toString(Charsets.UTF_8)
-        return uploadSnippetLogic(code, params)
+        val userId = principal.token.subject
+        return uploadSnippetLogic(code, params, userId)
     }
 
+    // US #3: Crear snippet (Editor)
     @PostMapping("/upload-inline")
-    suspend fun uploadSnippetInline(
+    fun uploadSnippetInline(
         @RequestParam("code") code: String,
         @Valid params: SnippetUploadDTO,
+        principal: JwtAuthenticationToken,
     ): ResponseEntity<Any> {
-        return uploadSnippetLogic(code, params)
+        val userId = principal.token.subject
+        return uploadSnippetLogic(code, params, userId)
     }
 
-    private suspend fun uploadSnippetLogic(
+    // Lógica común de creación
+    private fun uploadSnippetLogic(
         code: String,
         params: SnippetUploadDTO,
+        ownerId: String,
     ): ResponseEntity<Any> {
         val snippet =
             SubmitSnippetDTO(
@@ -73,15 +63,68 @@ class SnippetController(
                 params.description,
                 params.versionTag ?: "",
             )
-        val result = snippetService.createSnippet(snippet)
-        return resultHandler(result)
-    }
+        // Pasamos el ownerId al servicio
+        val result = snippetService.createSnippet(snippet, ownerId)
 
-    private suspend fun resultHandler(result: SnippetSubmissionResult): ResponseEntity<Any> {
         return when (result) {
-            is SnippetSubmissionResult.Success -> ResponseEntity.status(HttpStatus.CREATED).body(result)
-            is SnippetSubmissionResult.InvalidSnippet ->
+            is ingsist.snippet.domain.SnippetSubmissionResult.Success ->
+                ResponseEntity.status(HttpStatus.CREATED).body(result)
+            is ingsist.snippet.domain.SnippetSubmissionResult.InvalidSnippet ->
                 ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
         }
+    }
+
+    // US #2 & #4: Actualizar snippet
+    @PutMapping("/{id}") // Cambiado a PUT y con ID en path por convención REST
+    fun updateSnippet(
+        @PathVariable id: UUID,
+        @RequestBody newCode: String,
+        principal: JwtAuthenticationToken,
+    ): ResponseEntity<Any> {
+        val userId = principal.token.subject
+        // Validamos propiedad en el servicio
+        val result = snippetService.updateSnippet(id, newCode, userId)
+
+        return when (result) {
+            is ingsist.snippet.domain.SnippetSubmissionResult.Success -> ResponseEntity.ok(result)
+            is ingsist.snippet.domain.SnippetSubmissionResult.InvalidSnippet ->
+                ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
+        }
+    }
+
+    // US #5: Listar snippets (Propios + Compartidos)
+    // Sigue el estilo de listAccessible del ejemplo
+    @GetMapping
+    fun getAllSnippets(
+        principal: JwtAuthenticationToken,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
+    ): ResponseEntity<List<SnippetResponseDTO>> {
+        val userId = principal.token.subject
+        val snippets = snippetService.getAllSnippets(userId, page, size, principal.token.tokenValue)
+        return ResponseEntity.ok(snippets)
+    }
+
+    // US #6: Detalle de un snippet
+    @GetMapping("/{id}")
+    fun getSnippet(
+        @PathVariable id: UUID,
+    ): ResponseEntity<SnippetResponseDTO> {
+        val snippet = snippetService.getSnippetById(id)
+        return ResponseEntity.ok(snippet)
+    }
+
+    // US #7: Compartir snippet
+    @PostMapping("/{id}/share")
+    fun shareSnippet(
+        @PathVariable id: UUID,
+        @RequestBody shareDTO: ShareSnippetDTO,
+        principal: JwtAuthenticationToken,
+    ): ResponseEntity<Void> {
+        val userId = principal.token.subject
+        val token = principal.token.tokenValue
+
+        snippetService.shareSnippet(id, shareDTO.targetUserId, userId, token)
+        return ResponseEntity.ok().build()
     }
 }

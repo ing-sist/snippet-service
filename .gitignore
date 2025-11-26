@@ -4,7 +4,7 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-
+.env
 ### STS ###
 .apt_generated
 .classpath
@@ -38,6 +38,5 @@ out/
 
 ### Kotlin ###
 .kotlin
-
 .env*
 .DS_Store

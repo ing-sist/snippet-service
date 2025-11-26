@@ -1,28 +1,49 @@
 services:
-  server:
-    container_name: "snippet-service"
+  snippet-service:
+    container_name: snippet-service
     build:
       context: .
     ports:
-      - "8080:8080"
+      - "8082:8080"
+    environment:
+      DB_HOST: snippet-db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SERVICE_ASSET_URL: ${SERVICE_ASSET_URL}
+      SERVICE_ENGINE_URL: ${SERVICE_ENGINE_URL}
+      SERVICE_AUTH_URL: ${SERVICE_AUTH_URL}
+      AUTH0_ISSUER_URI: ${AUTH0_ISSUER_URI}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID}
+      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET}
     env_file:
       - .env
     depends_on:
-      - db
+      - snippet-db
+    networks:
+      - printscript-network
 
-  db:
+  snippet-db:
     container_name: snippet-postgres-db
-    image: postgres:17.6
+    image: postgres:17.6-alpine
     ports:
-      - "${DB_PORT}:5432"
+      - "5432:5432"
     environment:
+      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
     env_file:
       - .env
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - snippet-db-data:/var/lib/postgresql/data
+    networks:
+      - printscript-network
+
+networks:
+  printscript-network:
+    driver: bridge
 
 volumes:
-  postgres-data:
+  snippet-db-data:
