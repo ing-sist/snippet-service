@@ -13,7 +13,7 @@ import java.util.Date
 import java.util.UUID
 
 @Entity
-@Table(name = "snippet")
+@Table(name = "snippet_metadata")
 data class SnippetMetadata(
     @Id
     val id: UUID,

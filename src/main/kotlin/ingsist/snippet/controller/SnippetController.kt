@@ -127,4 +127,14 @@ class SnippetController(
         snippetService.shareSnippet(id, shareDTO.targetUserId, userId, token)
         return ResponseEntity.ok().build()
     }
+
+    // US #12: Formatting automatico de snippets
+    @PostMapping("/format-all")
+    fun formatSnippetAutomatically(
+        principal: JwtAuthenticationToken,
+    ): ResponseEntity<SnippetResponseDTO> {
+        val userId = principal.token.subject
+        snippetService.formatAllSnippets(userId)
+        return ResponseEntity.ok().build()
+    }
 }

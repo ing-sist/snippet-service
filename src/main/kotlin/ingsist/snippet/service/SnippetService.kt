@@ -13,6 +13,7 @@ import ingsist.snippet.dtos.SubmitSnippetDTO
 import ingsist.snippet.engine.EngineService
 import ingsist.snippet.exception.SnippetAccessDeniedException
 import ingsist.snippet.exception.SnippetNotFoundException
+import ingsist.snippet.redis.formatter.FormattingSnippetProducer
 import ingsist.snippet.repository.SnippetRepository
 import ingsist.snippet.repository.SnippetVersionRepository
 import jakarta.transaction.Transactional
@@ -29,6 +30,7 @@ class SnippetService(
     private val assetService: AssetService,
     private val engineService: EngineService,
     private val authClient: AuthClient,
+    private val snippetProducer: FormattingSnippetProducer,
 ) {
     // US #2 & #4: Actualizar snippet (Owner Aware)
     fun updateSnippet(
@@ -194,5 +196,13 @@ class SnippetService(
         }
 
         authClient.shareSnippet(snippetId, targetUserId, token)
+    }
+
+    // US #12: Formatting automatico de snippets
+    fun formatAllSnippets(userId: String) {
+        val allSnippets = snippetRepository.findAllByOwnerId(userId,  PageRequest.of(0, Int.MAX_VALUE)).content
+        allSnippets.forEach { snippet ->
+            snippetProducer.publishSnippet(snippet.id)
+        }
     }
 }
