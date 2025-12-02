@@ -130,11 +130,25 @@ class SnippetController(
 
     // US #12: Formatting automatico de snippets
     @PostMapping("/format-all")
-    fun formatSnippetAutomatically(
-        principal: JwtAuthenticationToken,
-    ): ResponseEntity<SnippetResponseDTO> {
+    fun formatSnippetAutomatically(principal: JwtAuthenticationToken): ResponseEntity<SnippetResponseDTO> {
         val userId = principal.token.subject
         snippetService.formatAllSnippets(userId)
         return ResponseEntity.ok().build()
+    }
+
+    @GetMapping("/{id}/latest")
+    fun getLastVersion(
+        @PathVariable id: UUID,
+    ): ResponseEntity<UUID> {
+        val snippet = snippetService.getSnippetLastVersionById(id)
+        return ResponseEntity.ok(snippet)
+    }
+
+    @GetMapping("/{id}/asset-key")
+    fun getAssetKey(
+        @PathVariable id: UUID,
+    ): ResponseEntity<String> {
+        val assetKey = snippetService.getSnippetAssetKeyById(id)
+        return ResponseEntity.ok(assetKey)
     }
 }

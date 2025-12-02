@@ -1,5 +1,6 @@
 package ingsist.snippet.repository
 
+import ingsist.snippet.domain.OwnerConfig
 import ingsist.snippet.domain.SnippetMetadata
 import ingsist.snippet.domain.SnippetVersion
 import org.springframework.data.domain.Page
@@ -24,9 +25,15 @@ interface SnippetRepository : JpaRepository<SnippetMetadata, UUID> {
         userId: String,
         pageable: Pageable,
     ): Page<SnippetMetadata>
-
-    suspend fun findByName(name: String): SnippetMetadata?
 }
 
 @Repository
-interface SnippetVersionRepository : JpaRepository<SnippetVersion, UUID>
+interface SnippetVersionRepository : JpaRepository<SnippetVersion, UUID> {
+    fun findLatestBySnippetId(
+        snippetId: UUID,
+        pageable: Pageable,
+    ): Page<SnippetVersion>
+}
+
+@Repository
+interface UserSnippetRepository : JpaRepository<OwnerConfig, String>

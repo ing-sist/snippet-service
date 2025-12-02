@@ -11,7 +11,7 @@ plugins {
 
 group = 'ingsist'
 version = '0.0.1-SNAPSHOT'
-description = 'Snippet Microservice for SnipperSearcher'
+description = 'Snippet Microservice for SnippetSearcher'
 
 java {
 	toolchain {

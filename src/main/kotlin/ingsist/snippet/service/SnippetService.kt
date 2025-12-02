@@ -1,6 +1,5 @@
 package ingsist.snippet.service
 
-import ingsist.snippet.asset.AssetService
 import ingsist.snippet.client.AuthClient
 import ingsist.snippet.domain.SnippetMetadata
 import ingsist.snippet.domain.SnippetSubmissionResult
@@ -27,7 +26,6 @@ import java.util.UUID
 class SnippetService(
     private val snippetRepository: SnippetRepository,
     private val snippetVersionRepository: SnippetVersionRepository,
-    private val assetService: AssetService,
     private val engineService: EngineService,
     private val authClient: AuthClient,
     private val snippetProducer: FormattingSnippetProducer,
@@ -59,11 +57,11 @@ class SnippetService(
                 language = existingSnippet.language,
                 version = lastVersion.versionTag,
                 snippetId = existingSnippet.id,
+                assetKey = lastVersion.assetKey,
             )
 
         return when (val validationResult = validateSnippet(request)) {
             is ValidationResult.Valid -> {
-                assetService.update("snippets", lastVersion.assetKey, request.code)
                 SnippetSubmissionResult.Success(
                     snippetId = existingSnippet.id,
                     name = existingSnippet.name,
@@ -91,14 +89,14 @@ class SnippetService(
                 language = snippet.language,
                 version = snippet.version,
                 snippetId = snippetId,
+                assetKey = assetKey,
             )
+
         return when (val validationResult = validateSnippet(request)) {
             is ValidationResult.Invalid -> {
                 SnippetSubmissionResult.InvalidSnippet(validationResult.message)
             }
             is ValidationResult.Valid -> {
-                assetService.upload("snippets", assetKey, snippet.code)
-
                 // Guardar Metadata con OwnerId
                 val snippetMetadata =
                     SnippetMetadata(
@@ -200,9 +198,25 @@ class SnippetService(
 
     // US #12: Formatting automatico de snippets
     fun formatAllSnippets(userId: String) {
-        val allSnippets = snippetRepository.findAllByOwnerId(userId,  PageRequest.of(0, Int.MAX_VALUE)).content
+        val allSnippets = snippetRepository.findAllByOwnerId(userId, PageRequest.of(0, Int.MAX_VALUE)).content
         allSnippets.forEach { snippet ->
             snippetProducer.publishSnippet(snippet.id)
         }
+    }
+
+    fun getSnippetLastVersionById(snippetId: UUID): UUID {
+        val snippet =
+            snippetVersionRepository.findLatestBySnippetId(snippetId, PageRequest.of(0, Int.MAX_VALUE)).content
+                .firstOrNull()
+                ?: throw SnippetNotFoundException("Snippet with id $snippetId not found")
+        return snippet.versionId
+    }
+
+    fun getSnippetAssetKeyById(snippetId: UUID): String {
+        val snippet =
+            snippetVersionRepository.findLatestBySnippetId(snippetId, PageRequest.of(0, Int.MAX_VALUE)).content
+                .firstOrNull()
+                ?: throw SnippetNotFoundException("Snippet with id $snippetId not found")
+        return snippet.assetKey
     }
 }

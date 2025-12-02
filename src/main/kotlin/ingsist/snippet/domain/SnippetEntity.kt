@@ -38,3 +38,22 @@ data class SnippetVersion(
     @JoinColumn(name = "snippet_id", nullable = false)
     val snippet: SnippetMetadata,
 )
+
+@Entity
+@Table(name = "owners_config")
+data class OwnerConfig(
+    @Id
+    @Column(name = "owner_id")
+    val ownerId: String,
+    // linting rules
+    val noExpressionsInPrintLine: Boolean,
+    val noUnusedVars: Boolean,
+    val noUndefVars: Boolean,
+    val noUnusedParams: Boolean,
+    // formatting rules
+    val indentation: Int,
+    val openIfBlockOnSameLine: Boolean,
+    val maxLineLength: Int,
+    val noTrailingSpaces: Boolean,
+    val noMultipleEmptyLines: Boolean,
+)

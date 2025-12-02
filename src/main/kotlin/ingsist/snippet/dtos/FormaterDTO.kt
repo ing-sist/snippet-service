@@ -4,6 +4,7 @@ import java.util.UUID
 
 data class FormatReqDTO(
     val snippetId: UUID,
+    val assetKey: String,
     val content: String,
     val version: String,
     val config: Map<String, Any>,
