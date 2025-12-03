@@ -1,11 +1,11 @@
 package ingsist.snippet.domain
 
-import ingsist.snippet.dtos.ExecuteResDTO
+import ingsist.snippet.dtos.ValidateResDto
 
-fun processEngineResult(result: ExecuteResDTO): ValidationResult {
-    if (result.errors.isNotEmpty()) {
+fun processEngineResult(result: ValidateResDto): ValidationResult {
+    if (result.error.isNotEmpty()) {
         return ValidationResult.Invalid(
-            result.errors,
+            result.error,
         )
     }
     // if error list is empty -> valid

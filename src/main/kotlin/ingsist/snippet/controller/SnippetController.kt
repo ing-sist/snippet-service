@@ -40,7 +40,7 @@ class SnippetController(
     // US #3: Crear snippet (Editor)
     @PostMapping("/upload-inline")
     fun uploadSnippetInline(
-        @RequestParam("code") code: String,
+        @RequestBody code: String,
         @Valid params: SnippetUploadDTO,
         principal: JwtAuthenticationToken,
     ): ResponseEntity<Any> {

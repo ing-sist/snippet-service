@@ -6,9 +6,9 @@ import ingsist.snippet.domain.SnippetSubmissionResult
 import ingsist.snippet.domain.SnippetVersion
 import ingsist.snippet.domain.ValidationResult
 import ingsist.snippet.domain.processEngineResult
-import ingsist.snippet.dtos.ExecuteReqDTO
 import ingsist.snippet.dtos.SnippetResponseDTO
 import ingsist.snippet.dtos.SubmitSnippetDTO
+import ingsist.snippet.dtos.ValidateReqDto
 import ingsist.snippet.engine.EngineService
 import ingsist.snippet.exception.SnippetAccessDeniedException
 import ingsist.snippet.exception.SnippetNotFoundException
@@ -52,9 +52,8 @@ class SnippetService(
         val lastVersion = existingSnippet.versions.last()
 
         val request =
-            ExecuteReqDTO(
-                code = newCode,
-                language = existingSnippet.language,
+            ValidateReqDto(
+                content = newCode,
                 version = lastVersion.versionTag,
                 snippetId = existingSnippet.id,
                 assetKey = lastVersion.assetKey,
@@ -84,9 +83,8 @@ class SnippetService(
         val assetKey = "snippet-$snippetId.ps"
 
         val request =
-            ExecuteReqDTO(
-                code = snippet.code,
-                language = snippet.language,
+            ValidateReqDto(
+                content = snippet.code,
                 version = snippet.version,
                 snippetId = snippetId,
                 assetKey = assetKey,
@@ -128,7 +126,7 @@ class SnippetService(
         }
     }
 
-    private fun validateSnippet(snippet: ExecuteReqDTO): ValidationResult {
+    private fun validateSnippet(snippet: ValidateReqDto): ValidationResult {
         return processEngineResult(engineService.parse(snippet))
     }
 
