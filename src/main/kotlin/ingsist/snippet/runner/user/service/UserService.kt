@@ -1,18 +1,16 @@
 package ingsist.snippet.runner.user.service
 
 import ingsist.snippet.auth.service.AuthService
+import ingsist.snippet.redis.OwnerConfigDto
 import ingsist.snippet.runner.snippet.domain.OwnerConfig
 import ingsist.snippet.runner.snippet.dtos.OwnerConfigDTO
-import ingsist.snippet.runner.snippet.repository.SnippetRepository
 import ingsist.snippet.runner.user.dtos.UserResponseDTO
 import ingsist.snippet.runner.user.repository.UserRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
-import java.util.UUID
 
 @Service
 class UserService(
-    private val snippetRepository: SnippetRepository,
     private val userRepository: UserRepository,
     private val authService: AuthService,
 ) {
@@ -43,15 +41,34 @@ class UserService(
         return userRepository.save(newConfig)
     }
 
-    fun getUserConfig(snippetId: UUID): OwnerConfig {
-        val snippet = snippetRepository.findById(snippetId)
-        val ownerId = snippet.get().ownerId
-        return userRepository.findByIdOrNull(ownerId) ?: createDefaultConfig(ownerId)
+//    fun getUserConfigBySnipptedID(snippetId: UUID): OwnerConfig {
+//        val snippet = snippetRepository.findById(snippetId)
+//        val ownerId = snippet.get().ownerId
+//        return userRepository.findByIdOrNull(ownerId) ?: createDefaultConfig(ownerId)
+//    }
+
+    open fun getUserConfig(ownerId: String): OwnerConfigDto {
+        val configEntity: OwnerConfig? = userRepository.findByIdOrNull(ownerId)
+
+        return configEntity?.toDto()
+            ?: createDefaultConfig()
     }
 
-    private fun createDefaultConfig(ownerId: String): OwnerConfig {
-        return OwnerConfig(
-            ownerId = ownerId,
+    private fun OwnerConfig.toDto(): OwnerConfigDto =
+        OwnerConfigDto(
+            noExpressionsInPrintLine = this.noExpressionsInPrintLine,
+            noUnusedVars = this.noUnusedVars,
+            noUndefVars = this.noUndefVars,
+            noUnusedParams = this.noUnusedParams,
+            indentation = this.indentation,
+            openIfBlockOnSameLine = this.openIfBlockOnSameLine,
+            maxLineLength = this.maxLineLength,
+            noTrailingSpaces = this.noTrailingSpaces,
+            noMultipleEmptyLines = this.noMultipleEmptyLines,
+        )
+
+    private fun createDefaultConfig(): OwnerConfigDto {
+        return OwnerConfigDto(
             noExpressionsInPrintLine = false,
             noUnusedVars = true,
             noUndefVars = true,

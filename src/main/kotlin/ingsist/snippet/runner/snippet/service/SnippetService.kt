@@ -1,5 +1,6 @@
 package ingsist.snippet.runner.snippet.service
 
+import StreamReqDto
 import ingsist.snippet.auth.service.AuthService
 import ingsist.snippet.engine.EngineService
 import ingsist.snippet.redis.FormattingSnippetProducer
@@ -18,6 +19,7 @@ import ingsist.snippet.runner.snippet.dtos.ValidateReqDto
 import ingsist.snippet.runner.snippet.repository.SnippetRepository
 import ingsist.snippet.runner.snippet.repository.SnippetSpecification
 import ingsist.snippet.runner.snippet.repository.SnippetVersionRepository
+import ingsist.snippet.runner.user.service.UserService
 import ingsist.snippet.shared.exception.ExternalServiceException
 import ingsist.snippet.shared.exception.SnippetAccessDeniedException
 import ingsist.snippet.shared.exception.SnippetNotFoundException
@@ -39,6 +41,7 @@ class SnippetService(
     private val authService: AuthService,
     private val formattingSnippetProducer: FormattingSnippetProducer,
     private val lintingSnippetProducer: LintingSnippetProducer,
+    private val userService: UserService,
 ) {
     // US #2 & #4: Actualizar snippet (Owner Aware)
     fun updateSnippet(
@@ -240,17 +243,35 @@ class SnippetService(
 
     // US #12: Formatting automatico de snippets
     fun formatAllSnippets(userId: String) {
+        val config = userService.getUserConfig(userId)
         val allSnippets = snippetRepository.findAllByOwnerId(userId, PageRequest.of(0, Int.MAX_VALUE)).content
         allSnippets.forEach { snippet ->
-            formattingSnippetProducer.publishSnippet(snippet.id)
+            val assetKey = getSnippetAssetKeyById(snippet.id)
+            formattingSnippetProducer.publishSnippet(
+                StreamReqDto(
+                    snippet.id,
+                    assetKey,
+                    version = snippet.langVersion,
+                    config = config,
+                ),
+            )
         }
     }
 
     // US #15: Linting automatico de snippets
     fun lintAllSnippets(userId: String) {
+        val config = userService.getUserConfig(userId)
         val allSnippets = snippetRepository.findAllByOwnerId(userId, PageRequest.of(0, Int.MAX_VALUE)).content
         allSnippets.forEach { snippet ->
-            lintingSnippetProducer.publishSnippet(snippet.id)
+            val assetKey = getSnippetAssetKeyById(snippet.id)
+            lintingSnippetProducer.publishSnippet(
+                StreamReqDto(
+                    snippet.id,
+                    assetKey,
+                    version = snippet.langVersion,
+                    config = config,
+                ),
+            )
         }
     }
 
