@@ -1,7 +1,7 @@
 package ingsist.snippet.engine
 
-import ingsist.snippet.runner.dtos.ValidateReqDto
-import ingsist.snippet.runner.dtos.ValidateResDto
+import ingsist.snippet.runner.snippet.dtos.ValidateReqDto
+import ingsist.snippet.runner.snippet.dtos.ValidateResDto
 import ingsist.snippet.shared.exception.ExternalServiceException
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient

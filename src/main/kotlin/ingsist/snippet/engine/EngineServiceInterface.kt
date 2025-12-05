@@ -1,7 +1,7 @@
 package ingsist.snippet.engine
 
-import ingsist.snippet.runner.dtos.ValidateReqDto
-import ingsist.snippet.runner.dtos.ValidateResDto
+import ingsist.snippet.runner.snippet.dtos.ValidateReqDto
+import ingsist.snippet.runner.snippet.dtos.ValidateResDto
 
 interface EngineServiceInterface {
     fun parse(snippet: ValidateReqDto): ValidateResDto
