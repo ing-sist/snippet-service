@@ -1,11 +1,11 @@
 package ingsist.snippet.runner.user.service
 
-import UserRepository
 import ingsist.snippet.auth.service.AuthService
 import ingsist.snippet.runner.snippet.domain.OwnerConfig
 import ingsist.snippet.runner.snippet.dtos.OwnerConfigDTO
 import ingsist.snippet.runner.snippet.repository.SnippetRepository
 import ingsist.snippet.runner.user.dtos.UserResponseDTO
+import ingsist.snippet.runner.user.repository.UserRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import java.util.UUID

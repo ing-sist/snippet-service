@@ -3,6 +3,7 @@ package ingsist.snippet.runner.snippet.service
 import ingsist.snippet.auth.service.AuthService
 import ingsist.snippet.engine.EngineService
 import ingsist.snippet.redis.FormattingSnippetProducer
+import ingsist.snippet.redis.LintingSnippetProducer
 import ingsist.snippet.runner.snippet.domain.ComplianceStatus
 import ingsist.snippet.runner.snippet.domain.SnippetMetadata
 import ingsist.snippet.runner.snippet.domain.SnippetSubmissionResult
@@ -36,7 +37,8 @@ class SnippetService(
     private val snippetVersionRepository: SnippetVersionRepository,
     private val engineService: EngineService,
     private val authService: AuthService,
-    private val snippetProducer: FormattingSnippetProducer,
+    private val formattingSnippetProducer: FormattingSnippetProducer,
+    private val lintingSnippetProducer: LintingSnippetProducer,
 ) {
     // US #2 & #4: Actualizar snippet (Owner Aware)
     fun updateSnippet(
@@ -208,7 +210,6 @@ class SnippetService(
         return resultPage.content.map { it.toDTO() }
     }
 
-    /*
     // US #6: Obtener snippet por ID
     fun getSnippetById(snippetId: UUID): SnippetResponseDTO {
         val snippet =
@@ -216,7 +217,6 @@ class SnippetService(
                 .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
         return snippet.toDTO()
     }
-     */
 
     // US #7: Compartir snippet
     fun shareSnippet(
@@ -242,7 +242,15 @@ class SnippetService(
     fun formatAllSnippets(userId: String) {
         val allSnippets = snippetRepository.findAllByOwnerId(userId, PageRequest.of(0, Int.MAX_VALUE)).content
         allSnippets.forEach { snippet ->
-            snippetProducer.publishSnippet(snippet.id)
+            formattingSnippetProducer.publishSnippet(snippet.id)
+        }
+    }
+
+    // US #15: Linting automatico de snippets
+    fun lintAllSnippets(userId: String) {
+        val allSnippets = snippetRepository.findAllByOwnerId(userId, PageRequest.of(0, Int.MAX_VALUE)).content
+        allSnippets.forEach { snippet ->
+            lintingSnippetProducer.publishSnippet(snippet.id)
         }
     }
 

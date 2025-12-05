@@ -16,7 +16,6 @@ class LintingSnippetProducer
         redis: RedisTemplate<String, String>,
     ) : SnippetEventProducer, RedisStreamProducer(streamKey, redis) {
         override fun publishSnippet(snippetId: UUID) {
-            println("Publishing formatting request for snippet: $snippetId")
             val event = snippetId.toString()
             emit(event)
         }

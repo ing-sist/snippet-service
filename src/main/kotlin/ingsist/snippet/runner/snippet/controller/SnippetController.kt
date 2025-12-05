@@ -148,6 +148,14 @@ class SnippetController(
         return ResponseEntity.ok().build()
     }
 
+    // US #15: Linting automatico de snippets
+    @PostMapping("/lint-all")
+    fun lintSnippetAutomatically(principal: JwtAuthenticationToken): ResponseEntity<SnippetResponseDTO> {
+        val userId = principal.token.subject
+        snippetService.lintAllSnippets(userId)
+        return ResponseEntity.ok().build()
+    }
+
     @GetMapping("/{id}/asset-key")
     fun getAssetKey(
         @PathVariable id: UUID,
@@ -167,7 +175,6 @@ class SnippetController(
         return ResponseEntity.ok().build()
     }
 
-    /*
     @GetMapping("/{id}/metadata")
     fun getSnippetMetadata(
         @PathVariable id: UUID,
@@ -175,5 +182,4 @@ class SnippetController(
         val snippet = snippetService.getSnippetById(id)
         return ResponseEntity.ok(snippet)
     }
-     */
 }
