@@ -15,7 +15,7 @@ import java.time.LocalDateTime
 import java.util.Date
 import java.util.UUID
 
-enum class ComplianceStatus {
+enum class ConformanceStatus {
     PENDING,
     COMPLIANT,
     NON_COMPLIANT,
@@ -35,7 +35,7 @@ data class SnippetMetadata(
     @Column(name = "owner_id")
     val ownerId: String,
     @Enumerated(EnumType.STRING)
-    var compliance: ComplianceStatus = ComplianceStatus.PENDING,
+    var conformance: ConformanceStatus = ConformanceStatus.PENDING,
     @Column(name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
     @OneToMany(mappedBy = "snippet", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)

@@ -1,6 +1,6 @@
 package ingsist.snippet.runner.snippet.repository
 
-import ingsist.snippet.runner.snippet.domain.ComplianceStatus
+import ingsist.snippet.runner.snippet.domain.ConformanceStatus
 import ingsist.snippet.runner.snippet.domain.SnippetMetadata
 import org.springframework.data.jpa.domain.Specification
 import java.util.UUID
@@ -54,12 +54,12 @@ object SnippetSpecification {
         }
     }
 
-    fun complianceEquals(compliance: String?): Specification<SnippetMetadata>? {
-        return compliance?.takeIf { it.isNotBlank() }?.let { statusStr ->
-            val status = ComplianceStatus.values().find { it.name == statusStr.uppercase() }
+    fun conformanceEquals(conformance: String?): Specification<SnippetMetadata>? {
+        return conformance?.takeIf { it.isNotBlank() }?.let { statusStr ->
+            val status = ConformanceStatus.values().find { it.name == statusStr.uppercase() }
             status?.let {
                 Specification { root, _, cb ->
-                    cb.equal(root.get<ComplianceStatus>("compliance"), it)
+                    cb.equal(root.get<ConformanceStatus>("conformance"), it)
                 }
             }
         }

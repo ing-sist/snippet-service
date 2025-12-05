@@ -5,13 +5,13 @@ import ingsist.snippet.auth.service.AuthService
 import ingsist.snippet.engine.EngineService
 import ingsist.snippet.redis.producer.FormattingSnippetProducer
 import ingsist.snippet.redis.producer.LintingSnippetProducer
-import ingsist.snippet.runner.snippet.domain.ComplianceStatus
+import ingsist.snippet.runner.snippet.domain.ConformanceStatus
 import ingsist.snippet.runner.snippet.domain.SnippetMetadata
 import ingsist.snippet.runner.snippet.domain.SnippetSubmissionResult
 import ingsist.snippet.runner.snippet.domain.SnippetVersion
 import ingsist.snippet.runner.snippet.domain.ValidationResult
 import ingsist.snippet.runner.snippet.domain.processEngineResult
-import ingsist.snippet.runner.snippet.dtos.LintingComplianceStatusDTO
+import ingsist.snippet.runner.snippet.dtos.LintingConformanceStatusDTO
 import ingsist.snippet.runner.snippet.dtos.PermissionDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetFilterDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetResponseDTO
@@ -118,7 +118,7 @@ class SnippetService(
                         description = snippet.description,
                         ownerId = ownerId,
                         langVersion = snippet.langVersion,
-                        compliance = ComplianceStatus.PENDING,
+                        conformance = ConformanceStatus.PENDING,
                         createdAt = LocalDateTime.now(),
                     )
                 snippetRepository.save(snippetMetadata)
@@ -162,7 +162,7 @@ class SnippetService(
             language = this.language,
             description = this.description,
             ownerId = this.ownerId,
-            compliance = this.compliance.name,
+            conformance = this.conformance.name,
             version = langVersion,
             createdAt = this.createdAt.toString(),
         )
@@ -197,13 +197,13 @@ class SnippetService(
 
         SnippetSpecification.nameContains(filter.name)?.let { spec = spec.and(it) }
         SnippetSpecification.languageEquals(filter.language)?.let { spec = spec.and(it) }
-        SnippetSpecification.complianceEquals(filter.compliance)?.let { spec = spec.and(it) }
+        SnippetSpecification.conformanceEquals(filter.conformance)?.let { spec = spec.and(it) }
 
         // 3. Construir Pageable con Ordenamiento (Sort)
         val direction = if (filter.dir.equals("ASC", ignoreCase = true)) Sort.Direction.ASC else Sort.Direction.DESC
 
         // Validamos que el campo sea seguro para ordenar, sino default createdAt
-        val validSortFields = listOf("name", "language", "compliance", "createdAt")
+        val validSortFields = listOf("name", "language", "conformance", "createdAt")
         val finalSortField = if (validSortFields.contains(filter.sort)) filter.sort else "createdAt"
 
         val pageable = PageRequest.of(filter.page, filter.size, Sort.by(direction, finalSortField))
@@ -301,14 +301,14 @@ class SnippetService(
         authService.deleteSnippetPermissions(snippetId, token)
     }
 
-    fun updateLintingCompliance(compliance: LintingComplianceStatusDTO) {
+    fun updateLintingConformance(conformance: LintingConformanceStatusDTO) {
         val snippet =
-            snippetRepository.findById(compliance.snippetId)
+            snippetRepository.findById(conformance.snippetId)
                 .orElseThrow {
-                    SnippetNotFoundException("Snippet with id ${compliance.snippetId} not found")
+                    SnippetNotFoundException("Snippet with id ${conformance.snippetId} not found")
                 }
 
-        snippet.compliance = compliance.status
+        snippet.conformance = conformance.status
         snippetRepository.save(snippet)
     }
 }
