@@ -31,6 +31,17 @@ repositories {
                     ?: System.getenv("GITHUB_TOKEN")
         }
     }
+
+    // redis packages
+    maven {
+        url = uri("https://maven.pkg.github.com/austral-ingsis/class-redis-streams")
+        credentials {
+            username = findProperty("gpr.user") as String
+                    ?: System.getenv("GITHUB_ACTOR")
+            password = findProperty("gpr.key")  as String
+                    ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
 }
 
 dependencies {
@@ -57,6 +68,13 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'com.h2database:h2'
     testImplementation 'org.mockito.kotlin:mockito-kotlin:5.2.1'
+
+    // Redis
+    implementation("org.austral.ingsis:redis-streams-mvc:0.1.13")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 }
 
 kotlin {

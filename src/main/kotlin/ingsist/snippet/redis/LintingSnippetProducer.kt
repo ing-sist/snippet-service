@@ -9,10 +9,10 @@ import org.springframework.stereotype.Component
 import java.util.UUID
 
 @Component
-class FormattingSnippetProducer
+class LintingSnippetProducer
     @Autowired
     constructor(
-        @Value("\${stream.formatting.key}") streamKey: String,
+        @Value("\${stream.linting.key}") streamKey: String,
         redis: RedisTemplate<String, String>,
     ) : SnippetEventProducer, RedisStreamProducer(streamKey, redis) {
         override fun publishSnippet(snippetId: UUID) {
