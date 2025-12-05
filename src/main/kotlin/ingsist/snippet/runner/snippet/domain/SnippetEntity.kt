@@ -19,7 +19,7 @@ enum class ComplianceStatus {
     PENDING,
     COMPLIANT,
     NON_COMPLIANT,
-    FAILED,
+    EXTERNAL_ERROR,
 }
 
 @Entity

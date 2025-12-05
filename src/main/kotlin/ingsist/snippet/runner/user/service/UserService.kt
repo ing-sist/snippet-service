@@ -1,9 +1,8 @@
 package ingsist.snippet.runner.user.service
 
 import ingsist.snippet.auth.service.AuthService
-import ingsist.snippet.redis.OwnerConfigDto
 import ingsist.snippet.runner.snippet.domain.OwnerConfig
-import ingsist.snippet.runner.snippet.dtos.OwnerConfigDTO
+import ingsist.snippet.runner.snippet.dtos.OwnerConfigDto
 import ingsist.snippet.runner.user.dtos.UserResponseDTO
 import ingsist.snippet.runner.user.repository.UserRepository
 import org.springframework.data.repository.findByIdOrNull
@@ -23,7 +22,7 @@ class UserService(
 
     fun updateUserConfig(
         ownerId: String,
-        dto: OwnerConfigDTO,
+        dto: OwnerConfigDto,
     ): OwnerConfig {
         val newConfig =
             OwnerConfig(
@@ -40,12 +39,6 @@ class UserService(
             )
         return userRepository.save(newConfig)
     }
-
-//    fun getUserConfigBySnipptedID(snippetId: UUID): OwnerConfig {
-//        val snippet = snippetRepository.findById(snippetId)
-//        val ownerId = snippet.get().ownerId
-//        return userRepository.findByIdOrNull(ownerId) ?: createDefaultConfig(ownerId)
-//    }
 
     open fun getUserConfig(ownerId: String): OwnerConfigDto {
         val configEntity: OwnerConfig? = userRepository.findByIdOrNull(ownerId)

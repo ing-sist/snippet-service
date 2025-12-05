@@ -1,6 +1,6 @@
 package ingsist.snippet.runner.user.controller
 
-import ingsist.snippet.runner.snippet.dtos.OwnerConfigDTO
+import ingsist.snippet.runner.snippet.dtos.OwnerConfigDto
 import ingsist.snippet.runner.user.dtos.UserResponseDTO
 import ingsist.snippet.runner.user.service.UserService
 import org.springframework.http.ResponseEntity
@@ -31,15 +31,8 @@ class UserController(
     @PostMapping("/updateConfig")
     fun updateUserConfig(
         @RequestParam userId: String,
-        @RequestBody config: OwnerConfigDTO,
+        @RequestBody config: OwnerConfigDto,
     ) {
         userService.updateUserConfig(userId, config)
     }
-
-//    @GetMapping("/{snippetId}/getConfig")
-//    fun getUserConfigBySnippetID(
-//        @PathVariable snippetId: UUID,
-//    ): OwnerConfig {
-//        return userService.getUserConfigBySnipptedID(snippetId)
-//    }
 }
