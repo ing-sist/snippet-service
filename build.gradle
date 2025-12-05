@@ -21,9 +21,10 @@ java {
 
 repositories {
     mavenCentral()
+    mavenLocal()
     maven {
         name = "GitHubPackages"
-        url = uri("https://maven.pkg.github.com/ingSis/printscript")
+        url = uri("https://maven.pkg.github.com/ing-sist/printscript")
         credentials {
             username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
             password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
@@ -34,8 +35,10 @@ repositories {
     maven {
         url = uri("https://maven.pkg.github.com/austral-ingsis/class-redis-streams")
         credentials {
-            username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-            password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            username = findProperty("gpr.user") as String
+                    ?: System.getenv("USERNAME")
+            password = findProperty("gpr.key")  as String
+                    ?: System.getenv("TOKEN")
         }
     }
 }
