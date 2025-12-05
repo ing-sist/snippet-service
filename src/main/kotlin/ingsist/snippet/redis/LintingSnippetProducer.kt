@@ -1,12 +1,13 @@
 package ingsist.snippet.redis
 
 import SnippetEventProducer
+import StreamReqDto
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.austral.ingsis.redis.RedisStreamProducer
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
-import java.util.UUID
 
 @Component
 class LintingSnippetProducer
@@ -14,9 +15,10 @@ class LintingSnippetProducer
     constructor(
         @Value("\${stream.linting.key}") streamKey: String,
         redis: RedisTemplate<String, String>,
+        val objectMapper: ObjectMapper,
     ) : SnippetEventProducer, RedisStreamProducer(streamKey, redis) {
-        override fun publishSnippet(snippetId: UUID) {
-            val event = snippetId.toString()
-            emit(event)
+        override fun publishSnippet(snippet: StreamReqDto) {
+            val json = objectMapper.writeValueAsString(snippet)
+            emit(json)
         }
     }
