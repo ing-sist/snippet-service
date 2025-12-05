@@ -1,8 +1,9 @@
 package ingsist.snippet.runner.controller
 
+import ingsist.snippet.dtos.SnippetFilterDTO
+import ingsist.snippet.dtos.SnippetResponseDTO
 import ingsist.snippet.runner.domain.SnippetSubmissionResult
 import ingsist.snippet.runner.dtos.ShareSnippetDTO
-import ingsist.snippet.runner.dtos.SnippetResponseDTO
 import ingsist.snippet.runner.dtos.SnippetUploadDTO
 import ingsist.snippet.runner.dtos.SubmitSnippetDTO
 import ingsist.snippet.runner.service.SnippetService
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -35,7 +37,8 @@ class SnippetController(
     ): ResponseEntity<Any> {
         val code = file.bytes.toString(Charsets.UTF_8)
         val userId = principal.token.subject
-        return uploadSnippetLogic(code, params, userId)
+        val token = principal.token.tokenValue
+        return uploadSnippetLogic(code, params, userId, token)
     }
 
     // US #3: Crear snippet (Editor)
@@ -46,7 +49,8 @@ class SnippetController(
         principal: JwtAuthenticationToken,
     ): ResponseEntity<Any> {
         val userId = principal.token.subject
-        return uploadSnippetLogic(code, params, userId)
+        val token = principal.token.tokenValue
+        return uploadSnippetLogic(code, params, userId, token)
     }
 
     // Lógica común de creación
@@ -54,6 +58,7 @@ class SnippetController(
         code: String,
         params: SnippetUploadDTO,
         ownerId: String,
+        token: String,
     ): ResponseEntity<Any> {
         val snippet =
             SubmitSnippetDTO(
@@ -65,7 +70,7 @@ class SnippetController(
                 params.versionTag ?: "",
             )
         // Pasamos el ownerId al servicio
-        val result = snippetService.createSnippet(snippet, ownerId)
+        val result = snippetService.createSnippet(snippet, ownerId, token)
 
         return when (result) {
             is SnippetSubmissionResult.Success ->
@@ -98,15 +103,20 @@ class SnippetController(
     @GetMapping
     fun getAllSnippets(
         principal: JwtAuthenticationToken,
-        @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "10") size: Int,
+        @ModelAttribute filter: SnippetFilterDTO,
     ): ResponseEntity<List<SnippetResponseDTO>> {
         val userId = principal.token.subject
-        val snippets = snippetService.getAllSnippets(userId, page, size, principal.token.tokenValue)
+        val snippets =
+            snippetService.getAllSnippets(
+                userId = userId,
+                token = principal.token.tokenValue,
+                filter = filter,
+            )
         return ResponseEntity.ok(snippets)
     }
 
-    // US #6: Detalle de un snippet
+    /*
+    //US #6: Detalle de un snippet
     @GetMapping("/{id}")
     fun getSnippet(
         @PathVariable id: UUID,
@@ -114,6 +124,7 @@ class SnippetController(
         val snippet = snippetService.getSnippetById(id)
         return ResponseEntity.ok(snippet)
     }
+     */
 
     // US #7: Compartir snippet
     @PostMapping("/{id}/share")
@@ -145,6 +156,7 @@ class SnippetController(
         return ResponseEntity.ok(assetKey)
     }
 
+    /*
     @GetMapping("/{id}/metadata")
     fun getSnippetMetadata(
         @PathVariable id: UUID,
@@ -152,4 +164,5 @@ class SnippetController(
         val snippet = snippetService.getSnippetById(id)
         return ResponseEntity.ok(snippet)
     }
+     */
 }

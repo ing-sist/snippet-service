@@ -4,12 +4,13 @@ import ingsist.snippet.runner.domain.SnippetMetadata
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
-interface SnippetRepository : JpaRepository<SnippetMetadata, UUID> {
+interface SnippetRepository : JpaRepository<SnippetMetadata, UUID>, JpaSpecificationExecutor<SnippetMetadata> {
     // Busca snippets propios O que estén en la lista de IDs compartidos
     @Query("SELECT s FROM SnippetMetadata s WHERE s.ownerId = :userId OR s.id IN :sharedSnippetIds")
     fun findAllByOwnerIdOrIdIn(

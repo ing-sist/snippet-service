@@ -3,14 +3,24 @@ package ingsist.snippet.runner.domain
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
+import java.time.LocalDateTime
 import java.util.Date
 import java.util.UUID
+
+enum class ComplianceStatus {
+    PENDING,
+    COMPLIANT,
+    NON_COMPLIANT,
+    FAILED,
+}
 
 @Entity
 @Table(name = "snippet_metadata")
@@ -19,10 +29,15 @@ data class SnippetMetadata(
     val id: UUID,
     val name: String,
     val language: String,
+    @Column(name = "lang_version")
     val langVersion: String,
     val description: String,
     @Column(name = "owner_id")
     val ownerId: String,
+    @Enumerated(EnumType.STRING)
+    var compliance: ComplianceStatus = ComplianceStatus.PENDING,
+    @Column(name = "created_at")
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     @OneToMany(mappedBy = "snippet", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     val versions: MutableList<SnippetVersion> = mutableListOf(),
 )

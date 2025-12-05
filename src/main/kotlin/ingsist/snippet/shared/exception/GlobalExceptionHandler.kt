@@ -22,7 +22,7 @@ class SnippetAccessDeniedException(message: String) : RuntimeException(message)
 
 class InvalidSnippetException(val errors: List<String>) : RuntimeException(errors.joinToString(", "))
 
-class ExternalServiceException(message: String) : RuntimeException(message)
+class ExternalServiceException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 @ControllerAdvice
 class GlobalExceptionHandler {

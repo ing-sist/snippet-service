@@ -1,4 +1,4 @@
-package ingsist.snippet.runner.dtos
+package ingsist.snippet.dtos
 
 import java.util.UUID
 

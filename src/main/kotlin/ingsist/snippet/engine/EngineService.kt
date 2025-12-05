@@ -23,4 +23,17 @@ class EngineService(private val engineRestClient: RestClient) : EngineServiceInt
             "Engine parse returned empty body",
         )
     }
+
+    override fun getSnippetContent(assetKey: String): String {
+        return engineRestClient.get()
+            .uri("/engine/code/$assetKey")
+            .retrieve()
+            .onStatus({ status -> status.isError }) { _, response ->
+                throw ExternalServiceException(
+                    "Failed to fetch snippet code from Engine. Status: ${response.statusCode}",
+                )
+            }
+            .body(String::class.java)
+            ?: ""
+    }
 }

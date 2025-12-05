@@ -2,22 +2,30 @@ package ingsist.snippet.runner.service
 
 import SnippetVersionRepository
 import ingsist.snippet.auth.client.AuthClient
+import ingsist.snippet.dtos.PermissionDTO
+import ingsist.snippet.dtos.SnippetFilterDTO
+import ingsist.snippet.dtos.SnippetResponseDTO
 import ingsist.snippet.engine.EngineService
 import ingsist.snippet.redis.FormattingSnippetProducer
+import ingsist.snippet.runner.domain.ComplianceStatus
 import ingsist.snippet.runner.domain.SnippetMetadata
 import ingsist.snippet.runner.domain.SnippetSubmissionResult
 import ingsist.snippet.runner.domain.SnippetVersion
 import ingsist.snippet.runner.domain.ValidationResult
 import ingsist.snippet.runner.domain.processEngineResult
-import ingsist.snippet.runner.dtos.SnippetResponseDTO
 import ingsist.snippet.runner.dtos.SubmitSnippetDTO
 import ingsist.snippet.runner.dtos.ValidateReqDto
 import ingsist.snippet.runner.repository.SnippetRepository
+import ingsist.snippet.runner.repository.SnippetSpecification
+import ingsist.snippet.shared.exception.ExternalServiceException
 import ingsist.snippet.shared.exception.SnippetAccessDeniedException
 import ingsist.snippet.shared.exception.SnippetNotFoundException
 import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
+import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 import java.util.Date
 import java.util.UUID
 
@@ -77,6 +85,7 @@ class SnippetService(
     fun createSnippet(
         snippet: SubmitSnippetDTO,
         ownerId: String,
+        token: String,
     ): SnippetSubmissionResult {
         val snippetId = UUID.randomUUID()
         val assetKey = "snippet-$snippetId.ps"
@@ -103,6 +112,8 @@ class SnippetService(
                         description = snippet.description,
                         ownerId = ownerId,
                         langVersion = snippet.langVersion,
+                        compliance = ComplianceStatus.PENDING,
+                        createdAt = LocalDateTime.now(),
                     )
                 snippetRepository.save(snippetMetadata)
 
@@ -114,6 +125,15 @@ class SnippetService(
                         snippet = snippetMetadata,
                     )
                 snippetVersionRepository.save(snippetVersion)
+
+                // Llamada a Auth para registrar ownership (US #3 Requisito)
+                try {
+                    val permDto = PermissionDTO(ownerId, snippetId, "OWNER")
+                    authClient.grantPermission(permDto, token)
+                } catch (e: ExternalServiceException) {
+                    // Manejo de error (log o rollback)
+                    println("Error granting owner permission: ${e.message}")
+                }
 
                 SnippetSubmissionResult.Success(
                     snippetId = snippetMetadata.id,
@@ -137,34 +157,45 @@ class SnippetService(
             language = this.language,
             description = this.description,
             ownerId = this.ownerId,
-            compliance = "pending",
+            compliance = this.compliance.name,
             version = langVersion,
+            createdAt = this.createdAt.toString(),
         )
     }
 
     // US #5: Listar snippets
     fun getAllSnippets(
         userId: String,
-        page: Int,
-        size: Int,
         token: String,
+        filter: SnippetFilterDTO,
     ): List<SnippetResponseDTO> {
         // 1. Obtener IDs compartidos desde Auth Service
-        val sharedIds = authClient.getUserPermissions(userId, token)
+        val sharedSnippets = authClient.getSharedSnippets(userId, token)
+        val sharedIds = sharedSnippets.map { it.snippetId }
 
-        val pageable = PageRequest.of(page, size)
+        // 2. Construir Specification (Filtros)
+        var spec = Specification.where(SnippetSpecification.hasAccess(userId, sharedIds))
 
-        // 2. Buscar (Mis snippets + Compartidos)
-        val snippetsPage =
-            if (sharedIds.isEmpty()) {
-                snippetRepository.findAllByOwnerId(userId, pageable)
-            } else {
-                snippetRepository.findAllByOwnerIdOrIdIn(userId, sharedIds, pageable)
-            }
+        SnippetSpecification.nameContains(filter.name)?.let { spec = spec.and(it) }
+        SnippetSpecification.languageEquals(filter.language)?.let { spec = spec.and(it) }
+        SnippetSpecification.complianceEquals(filter.compliance)?.let { spec = spec.and(it) }
 
-        return snippetsPage.content.map { it.toDTO() }
+        // 3. Construir Pageable con Ordenamiento (Sort)
+        val direction = if (filter.dir.equals("ASC", ignoreCase = true)) Sort.Direction.ASC else Sort.Direction.DESC
+
+        // Validamos que el campo sea seguro para ordenar, sino default createdAt
+        val validSortFields = listOf("name", "language", "compliance", "createdAt")
+        val finalSortField = if (validSortFields.contains(filter.sort)) filter.sort else "createdAt"
+
+        val pageable = PageRequest.of(filter.page, filter.size, Sort.by(direction, finalSortField))
+
+        // 4. Ejecutar consulta
+        val resultPage = snippetRepository.findAll(spec, pageable)
+
+        return resultPage.content.map { it.toDTO() }
     }
 
+    /*
     // US #6: Obtener snippet por ID
     fun getSnippetById(snippetId: UUID): SnippetResponseDTO {
         val snippet =
@@ -172,6 +203,7 @@ class SnippetService(
                 .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
         return snippet.toDTO()
     }
+     */
 
     // US #7: Compartir snippet
     fun shareSnippet(
@@ -189,7 +221,8 @@ class SnippetService(
             throw SnippetAccessDeniedException("You don't have permission to share this snippet (not the owner)")
         }
 
-        authClient.shareSnippet(snippetId, targetUserId, token)
+        val dto = PermissionDTO(userId = targetUserId, snippetId = snippetId, permission = "READ")
+        authClient.grantPermission(dto, token)
     }
 
     // US #12: Formatting automatico de snippets

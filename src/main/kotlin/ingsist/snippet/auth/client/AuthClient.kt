@@ -1,67 +1,103 @@
 package ingsist.snippet.auth.client
 
+import ingsist.snippet.dtos.PermissionDTO
+import ingsist.snippet.dtos.UserDTO
 import ingsist.snippet.shared.exception.ExternalServiceException
-import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
 import java.util.UUID
 
-// DTO interno para mapear la respuesta del Auth Service
-data class SnippetPermissionDto(
-    val snippetId: String,
-    val userId: String,
-    val permission: String,
-)
-
-data class GrantPermissionRequest(
-    val userId: String,
-    val permission: String = "READ",
-)
-
 @Component
 class AuthClient(
-    @Qualifier("authRestClient") private val restClient: RestClient,
+    private val restClientBuilder: RestClient.Builder,
+    @Value("\${external.auth.url}") private val authServiceUrl: String,
 ) {
-    // Obtiene los permisos que tiene un usuario (US #5)
-    // GET /users/{userId}/permissions
-    fun getUserPermissions(
-        userId: String,
-        token: String,
-    ): List<UUID> {
-        return try {
-            val permissions =
-                restClient.get()
-                    .uri("/users/{userId}/permissions", userId)
-                    .header("Authorization", "Bearer $token") // Pasamos el token del usuario
-                    .retrieve()
-                    .body(Array<SnippetPermissionDto>::class.java)
+    private val client = restClientBuilder.baseUrl(authServiceUrl).build()
 
-            permissions?.map { UUID.fromString(it.snippetId) } ?: emptyList()
+    // US #7: Buscar usuarios (Propaga token de usuario)
+    fun getUsers(
+        email: String,
+        token: String,
+    ): List<UserDTO> {
+        return try {
+            client.get()
+                .uri("/users?email={email}", email)
+                .header("Authorization", token)
+                .retrieve()
+                .body(object : ParameterizedTypeReference<List<UserDTO>>() {}) ?: emptyList()
         } catch (e: RestClientException) {
-            // If auth service is unavailable or user not found, return empty permissions
-            println("Failed to get user permissions: ${e.message}")
-            emptyList()
+            throw ExternalServiceException("Error getting users: ${e.message}", e)
         }
     }
 
-    // Comparte un snippet (US #7)
-    // POST /snippets/{snippetId}/permissions
-    fun shareSnippet(
-        snippetId: UUID,
-        targetUserId: String,
+    // US #7: Compartir (Propaga token de usuario)
+    fun grantPermission(
+        dto: PermissionDTO,
         token: String,
     ) {
-        val request = GrantPermissionRequest(userId = targetUserId)
+        try {
+            client.post()
+                .uri("/permissions")
+                .header("Authorization", token)
+                .body(dto)
+                .retrieve()
+                .toBodilessEntity()
+        } catch (e: RestClientException) {
+            throw ExternalServiceException("Error granting permission: ${e.message}", e)
+        }
+    }
 
-        restClient.post()
-            .uri("/snippets/{snippetId}/permissions", snippetId)
-            .header("Authorization", "Bearer $token")
-            .body(request)
-            .retrieve()
-            .onStatus({ status -> status.isError }) { _, response ->
-                throw ExternalServiceException("Share snippet failed with status code: ${response.statusCode}")
-            }
-            .toBodilessEntity()
+    // US #5: Obtener snippets compartidos conmigo
+    fun getSharedSnippets(
+        userId: String,
+        token: String,
+    ): List<PermissionDTO> {
+        return try {
+            client.get()
+                .uri("/permissions/user/{userId}", userId)
+                .header("Authorization", token)
+                .retrieve()
+                .body(object : ParameterizedTypeReference<List<PermissionDTO>>() {}) ?: emptyList()
+        } catch (e: RestClientException) {
+            throw ExternalServiceException("Error getting shared snippets: ${e.message}", e)
+        }
+    }
+
+    // US #6: Validar acceso (Propaga token de usuario)
+    fun hasPermission(
+        snippetId: UUID,
+        permission: String,
+        token: String,
+    ): Boolean {
+        return try {
+            // Asumimos que tu Auth Service usa el token para identificar al usuario que pregunta
+            val response =
+                client.get()
+                    .uri("/permissions/snippet/{snippetId}?permission={permission}", snippetId, permission)
+                    .header("Authorization", token)
+                    .retrieve()
+                    .body(Boolean::class.java)
+            response ?: false
+        } catch (e: RestClientException) {
+            throw ExternalServiceException("Error checking permission: ${e.message}", e)
+        }
+    }
+
+    fun deleteSnippetPermissions(
+        snippetId: UUID,
+        token: String,
+    ) {
+        try {
+            client.delete()
+                .uri("/snippet/{snippetId}", snippetId)
+                .header("Authorization", token)
+                .retrieve()
+                .toBodilessEntity()
+        } catch (e: RestClientException) {
+            throw ExternalServiceException("Error deleting snippet permissions: ${e.message}", e)
+        }
     }
 }
