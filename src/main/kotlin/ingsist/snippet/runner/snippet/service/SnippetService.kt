@@ -3,14 +3,15 @@ package ingsist.snippet.runner.snippet.service
 import StreamReqDto
 import ingsist.snippet.auth.service.AuthService
 import ingsist.snippet.engine.EngineService
-import ingsist.snippet.redis.FormattingSnippetProducer
-import ingsist.snippet.redis.LintingSnippetProducer
+import ingsist.snippet.redis.producer.FormattingSnippetProducer
+import ingsist.snippet.redis.producer.LintingSnippetProducer
 import ingsist.snippet.runner.snippet.domain.ComplianceStatus
 import ingsist.snippet.runner.snippet.domain.SnippetMetadata
 import ingsist.snippet.runner.snippet.domain.SnippetSubmissionResult
 import ingsist.snippet.runner.snippet.domain.SnippetVersion
 import ingsist.snippet.runner.snippet.domain.ValidationResult
 import ingsist.snippet.runner.snippet.domain.processEngineResult
+import ingsist.snippet.runner.snippet.dtos.LintingComplianceStatusDTO
 import ingsist.snippet.runner.snippet.dtos.PermissionDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetFilterDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetResponseDTO
@@ -298,5 +299,16 @@ class SnippetService(
 
         snippetRepository.delete(snippet)
         authService.deleteSnippetPermissions(snippetId, token)
+    }
+
+    fun updateLintingCompliance(compliance: LintingComplianceStatusDTO) {
+        val snippet =
+            snippetRepository.findById(compliance.snippetId)
+                .orElseThrow {
+                    SnippetNotFoundException("Snippet with id ${compliance.snippetId} not found")
+                }
+
+        snippet.compliance = compliance.status
+        snippetRepository.save(snippet)
     }
 }

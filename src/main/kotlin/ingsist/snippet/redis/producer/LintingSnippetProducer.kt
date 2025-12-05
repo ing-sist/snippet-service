@@ -1,4 +1,4 @@
-package ingsist.snippet.redis
+package ingsist.snippet.redis.producer
 
 import SnippetEventProducer
 import StreamReqDto
@@ -18,6 +18,7 @@ class LintingSnippetProducer
         val objectMapper: ObjectMapper,
     ) : SnippetEventProducer, RedisStreamProducer(streamKey, redis) {
         override fun publishSnippet(snippet: StreamReqDto) {
+            // aca deberia mandar el pending a la ui
             val json = objectMapper.writeValueAsString(snippet)
             emit(json)
         }

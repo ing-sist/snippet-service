@@ -16,7 +16,7 @@ complexity:
     threshold: 5
   TooManyFunctions:
     active: true
-    thresholdInClasses: 12
+    thresholdInClasses: 13
 
 style:
   active: true

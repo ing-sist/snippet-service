@@ -1,4 +1,4 @@
-package ingsist.snippet.redis
+package ingsist.snippet.redis.producer
 
 import SnippetEventProducer
 import StreamReqDto

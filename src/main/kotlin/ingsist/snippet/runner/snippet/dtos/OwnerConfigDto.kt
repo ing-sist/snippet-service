@@ -1,6 +1,6 @@
 package ingsist.snippet.runner.snippet.dtos
 
-data class OwnerConfigDTO(
+data class OwnerConfigDto(
     val noExpressionsInPrintLine: Boolean,
     val noUnusedVars: Boolean,
     val noUndefVars: Boolean,
