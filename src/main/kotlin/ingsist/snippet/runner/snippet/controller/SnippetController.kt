@@ -156,6 +156,26 @@ class SnippetController(
         return ResponseEntity.ok().build()
     }
 
+    @PostMapping("/{id}/format")
+    fun formatSnippet(
+        principal: JwtAuthenticationToken,
+        @PathVariable id: UUID,
+    ): ResponseEntity<SnippetResponseDTO> {
+        val userId = principal.token.subject
+        snippetService.formatSnippet(userId, id)
+        return ResponseEntity.ok().build()
+    }
+
+    @PostMapping("/{id}/lint")
+    fun lintSnippet(
+        principal: JwtAuthenticationToken,
+        @PathVariable id: UUID,
+    ): ResponseEntity<SnippetResponseDTO> {
+        val userId = principal.token.subject
+        snippetService.lintSnippet(userId, id)
+        return ResponseEntity.ok().build()
+    }
+
     @GetMapping("/{id}/asset-key")
     fun getAssetKey(
         @PathVariable id: UUID,
