@@ -263,6 +263,8 @@ class SnippetService(
             throw SnippetAccessDeniedException("You don't have permission to delete this snippet (not the owner)")
         }
 
+        val assetKey = getSnippetAssetKeyById(snippetId)
+        engineService.deleteSnippet(assetKey)
         snippetRepository.delete(snippet)
         permissionService.deleteSnippetPermissions(snippetId, token)
     }
