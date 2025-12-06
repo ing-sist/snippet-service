@@ -3,10 +3,11 @@ package ingsist.snippet.runner.snippet.service
 import StreamReqDto
 import ingsist.snippet.redis.producer.FormattingSnippetProducer
 import ingsist.snippet.redis.producer.LintingSnippetProducer
-import ingsist.snippet.runner.snippet.dtos.LintingComplianceStatusDTO
+import ingsist.snippet.runner.snippet.dtos.LintingConformanceStatusDTO
 import ingsist.snippet.runner.snippet.repository.SnippetRepository
 import ingsist.snippet.runner.snippet.repository.SnippetVersionRepository
 import ingsist.snippet.runner.user.service.UserService
+import ingsist.snippet.shared.exception.SnippetAccessDeniedException
 import ingsist.snippet.shared.exception.SnippetNotFoundException
 import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
@@ -39,6 +40,30 @@ class SnippetProcessingService(
         }
     }
 
+    fun formatSnippet(
+        userId: String,
+        snippetId: UUID,
+    ) {
+        val snippet =
+            snippetRepository.findById(snippetId)
+                .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
+
+        if (snippet.ownerId != userId) {
+            throw SnippetAccessDeniedException("You don't have permission to format this snippet")
+        }
+
+        val config = userService.getUserConfig(userId)
+        val assetKey = getSnippetAssetKeyById(snippet.id)
+        formattingSnippetProducer.publishSnippet(
+            StreamReqDto(
+                snippet.id,
+                assetKey,
+                version = snippet.langVersion,
+                config = config,
+            ),
+        )
+    }
+
     // US #15: Linting automatico de snippets
     fun lintAllSnippets(userId: String) {
         val config = userService.getUserConfig(userId)
@@ -56,14 +81,38 @@ class SnippetProcessingService(
         }
     }
 
-    fun updateLintingCompliance(compliance: LintingComplianceStatusDTO) {
+    fun lintSnippet(
+        userId: String,
+        snippetId: UUID,
+    ) {
         val snippet =
-            snippetRepository.findById(compliance.snippetId)
+            snippetRepository.findById(snippetId)
+                .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
+
+        if (snippet.ownerId != userId) {
+            throw SnippetAccessDeniedException("You don't have permission to lint this snippet")
+        }
+
+        val config = userService.getUserConfig(userId)
+        val assetKey = getSnippetAssetKeyById(snippet.id)
+        lintingSnippetProducer.publishSnippet(
+            StreamReqDto(
+                snippet.id,
+                assetKey,
+                version = snippet.langVersion,
+                config = config,
+            ),
+        )
+    }
+
+    fun updateLintingConformance(conformance: LintingConformanceStatusDTO) {
+        val snippet =
+            snippetRepository.findById(conformance.snippetId)
                 .orElseThrow {
-                    SnippetNotFoundException("Snippet with id ${compliance.snippetId} not found")
+                    SnippetNotFoundException("Snippet with id ${conformance.snippetId} not found")
                 }
 
-        snippet.compliance = compliance.status
+        snippet.conformance = conformance.status
         snippetRepository.save(snippet)
     }
 

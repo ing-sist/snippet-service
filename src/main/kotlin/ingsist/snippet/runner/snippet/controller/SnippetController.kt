@@ -194,7 +194,7 @@ class SnippetController(
         @PathVariable id: UUID,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = principal.token.subject
-        snippetService.formatSnippet(userId, id)
+        snippetProcessingService.formatSnippet(userId, id)
         return ResponseEntity.ok().build()
     }
 
@@ -204,7 +204,7 @@ class SnippetController(
         @PathVariable id: UUID,
     ): ResponseEntity<SnippetResponseDTO> {
         val userId = principal.token.subject
-        snippetService.lintSnippet(userId, id)
+        snippetProcessingService.lintSnippet(userId, id)
         return ResponseEntity.ok().build()
     }
 
