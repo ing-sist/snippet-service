@@ -259,6 +259,30 @@ class SnippetService(
         }
     }
 
+    fun formatSnippet(
+        userId: String,
+        snippetId: UUID,
+    ) {
+        val snippet =
+            snippetRepository.findById(snippetId)
+                .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
+
+        if (snippet.ownerId != userId) {
+            throw SnippetAccessDeniedException("You don't have permission to format this snippet")
+        }
+
+        val config = userService.getUserConfig(userId)
+        val assetKey = getSnippetAssetKeyById(snippet.id)
+        formattingSnippetProducer.publishSnippet(
+            StreamReqDto(
+                snippet.id,
+                assetKey,
+                version = snippet.langVersion,
+                config = config,
+            ),
+        )
+    }
+
     // US #15: Linting automatico de snippets
     fun lintAllSnippets(userId: String) {
         val config = userService.getUserConfig(userId)
@@ -274,6 +298,30 @@ class SnippetService(
                 ),
             )
         }
+    }
+
+    fun lintSnippet(
+        userId: String,
+        snippetId: UUID,
+    ) {
+        val snippet =
+            snippetRepository.findById(snippetId)
+                .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
+
+        if (snippet.ownerId != userId) {
+            throw SnippetAccessDeniedException("You don't have permission to lint this snippet")
+        }
+
+        val config = userService.getUserConfig(userId)
+        val assetKey = getSnippetAssetKeyById(snippet.id)
+        lintingSnippetProducer.publishSnippet(
+            StreamReqDto(
+                snippet.id,
+                assetKey,
+                version = snippet.langVersion,
+                config = config,
+            ),
+        )
     }
 
     fun getSnippetAssetKeyById(snippetId: UUID): String {

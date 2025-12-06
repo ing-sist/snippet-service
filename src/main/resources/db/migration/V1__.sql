@@ -21,6 +21,8 @@ CREATE TABLE snippet_metadata
     lang_version VARCHAR(255),
     description  VARCHAR(255),
     owner_id     VARCHAR(255),
+    conformance  VARCHAR(255),
+    created_at   TIMESTAMP WITHOUT TIME ZONE,
     CONSTRAINT pk_snippet_metadata PRIMARY KEY (id)
 );
 
