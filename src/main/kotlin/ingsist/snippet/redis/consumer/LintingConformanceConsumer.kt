@@ -1,7 +1,7 @@
 package ingsist.snippet.redis.consumer
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import ingsist.snippet.runner.snippet.dtos.LintingComplianceStatusDTO
+import ingsist.snippet.runner.snippet.dtos.LintingConformanceStatusDTO
 import org.austral.ingsis.redis.RedisStreamConsumer
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -14,13 +14,13 @@ import java.time.Duration
 
 @Component
 @Profile("!test")
-class LintingComplianceConsumer
+class LintingConformanceConsumer
     @Autowired
     constructor(
         redis: RedisTemplate<String, String>,
-        @Value("\${stream.linting.compliance.key}") streamKey: String,
-        @Value("\${groups.compliance}") groupId: String,
-        private val complianceStreamService: ConsumerComplianceStreamService,
+        @Value("\${stream.linting.conformance.key}") streamKey: String,
+        @Value("\${groups.conformance}") groupId: String,
+        private val conformanceStreamService: ConsumerConformanceStreamService,
         private val objectMapper: ObjectMapper,
     ) : RedisStreamConsumer<String>(streamKey, groupId, redis) {
         override fun options(): StreamReceiver.StreamReceiverOptions<
@@ -35,7 +35,7 @@ class LintingComplianceConsumer
 
         override fun onMessage(record: ObjectRecord<String, String>) {
             val json = record.value
-            val dto = objectMapper.readValue(json, LintingComplianceStatusDTO::class.java)
-            complianceStreamService.saveCompliance(dto)
+            val dto = objectMapper.readValue(json, LintingConformanceStatusDTO::class.java)
+            conformanceStreamService.saveConformance(dto)
         }
     }

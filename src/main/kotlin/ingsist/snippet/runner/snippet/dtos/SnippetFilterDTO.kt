@@ -5,7 +5,7 @@ data class SnippetFilterDTO(
     val size: Int = 10,
     val name: String? = null,
     val language: String? = null,
-    val compliance: String? = null,
+    val conformance: String? = null,
     val mode: String = "ALL",
     val sort: String = "createdAt",
     val dir: String = "DESC",
