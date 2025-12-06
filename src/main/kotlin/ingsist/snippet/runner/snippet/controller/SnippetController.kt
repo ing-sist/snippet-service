@@ -1,13 +1,19 @@
 package ingsist.snippet.runner.snippet.controller
 
+import ingsist.snippet.engine.EngineService
 import ingsist.snippet.runner.snippet.domain.SnippetSubmissionResult
 import ingsist.snippet.runner.snippet.dtos.SnippetFilterDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetResponseDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetUploadDTO
 import ingsist.snippet.runner.snippet.dtos.SubmitSnippetDTO
+import ingsist.snippet.runner.snippet.service.SnippetProcessingService
 import ingsist.snippet.runner.snippet.service.SnippetService
 import jakarta.validation.Valid
+import org.springframework.core.io.ByteArrayResource
+import org.springframework.core.io.Resource
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -27,6 +33,8 @@ import java.util.UUID
 @RequestMapping("/snippets")
 class SnippetController(
     private val snippetService: SnippetService,
+    private val engineService: EngineService,
+    private val snippetProcessingService: SnippetProcessingService,
 ) {
     // US #1: Crear snippet (Upload file)
     @PostMapping("/upload-from-file")
@@ -98,6 +106,30 @@ class SnippetController(
         }
     }
 
+    // US #13: Descargar Snippet
+    @GetMapping("/{id}/download")
+    fun downloadSnippet(
+        @PathVariable id: UUID,
+        principal: JwtAuthenticationToken,
+    ): ResponseEntity<Resource> {
+        val userId = principal.token.subject
+        val token = principal.token.tokenValue
+
+        // 1. Obtener Asset Key (validando permisos)
+        val assetKey = snippetService.getSnippetForDownload(id, userId, token)
+
+        // 2. Obtener contenido desde Engine
+        val code = engineService.getSnippetContent(assetKey)
+        val resource = ByteArrayResource(code.toByteArray())
+
+        // 3. Retornar archivo descargable
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"snippet.ps\"")
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .contentLength(resource.contentLength())
+            .body(resource)
+    }
+
     // US #5: Listar snippets (Propios + Compartidos)
     // Sigue el estilo de listAccessible del ejemplo
     @GetMapping
@@ -144,7 +176,7 @@ class SnippetController(
     @PostMapping("/format-all")
     fun formatSnippetAutomatically(principal: JwtAuthenticationToken): ResponseEntity<SnippetResponseDTO> {
         val userId = principal.token.subject
-        snippetService.formatAllSnippets(userId)
+        snippetProcessingService.formatAllSnippets(userId)
         return ResponseEntity.ok().build()
     }
 
@@ -152,7 +184,7 @@ class SnippetController(
     @PostMapping("/lint-all")
     fun lintSnippetAutomatically(principal: JwtAuthenticationToken): ResponseEntity<SnippetResponseDTO> {
         val userId = principal.token.subject
-        snippetService.lintAllSnippets(userId)
+        snippetProcessingService.lintAllSnippets(userId)
         return ResponseEntity.ok().build()
     }
 
