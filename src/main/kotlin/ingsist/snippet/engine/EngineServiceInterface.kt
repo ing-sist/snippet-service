@@ -7,4 +7,6 @@ interface EngineServiceInterface {
     fun parse(snippet: ValidateReqDto): ValidateResDto
 
     fun getSnippetContent(assetKey: String): String
+
+    fun deleteSnippet(assetKey: String)
 }

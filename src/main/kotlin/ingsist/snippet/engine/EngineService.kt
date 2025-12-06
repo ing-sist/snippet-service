@@ -36,4 +36,16 @@ class EngineService(private val engineRestClient: RestClient) : EngineServiceInt
             .body(String::class.java)
             ?: ""
     }
+
+    override fun deleteSnippet(assetKey: String) {
+        engineRestClient.delete()
+            .uri("/engine/code/$assetKey")
+            .retrieve()
+            .onStatus({ status -> status.isError }) { _, response ->
+                throw ExternalServiceException(
+                    "Failed to delete snippet code from Engine. Status: ${response.statusCode}",
+                )
+            }
+            .toBodilessEntity()
+    }
 }
