@@ -2,6 +2,7 @@ package ingsist.snippet.runner.snippet.controller
 
 import ingsist.snippet.engine.EngineService
 import ingsist.snippet.runner.snippet.domain.SnippetSubmissionResult
+import ingsist.snippet.runner.snippet.dtos.SnippetDetailsDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetFilterDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetResponseDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetUploadDTO
@@ -11,6 +12,7 @@ import ingsist.snippet.runner.snippet.service.SnippetService
 import jakarta.validation.Valid
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.Resource
+import org.springframework.data.domain.Page
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -136,7 +138,7 @@ class SnippetController(
     fun getAllSnippets(
         principal: JwtAuthenticationToken,
         @ModelAttribute filter: SnippetFilterDTO,
-    ): ResponseEntity<List<SnippetResponseDTO>> {
+    ): ResponseEntity<Page<SnippetResponseDTO>> {
         val userId = principal.token.subject
         val snippets =
             snippetService.getAllSnippets(
@@ -147,16 +149,17 @@ class SnippetController(
         return ResponseEntity.ok(snippets)
     }
 
-    /*
-    //US #6: Detalle de un snippet
+    // US #6: Detalle de un snippet
     @GetMapping("/{id}")
     fun getSnippet(
         @PathVariable id: UUID,
-    ): ResponseEntity<SnippetResponseDTO> {
-        val snippet = snippetService.getSnippetById(id)
+        principal: JwtAuthenticationToken,
+    ): ResponseEntity<SnippetDetailsDTO> {
+        val userId = principal.token.subject
+        val token = principal.token.tokenValue
+        val snippet = snippetService.getSnippetById(id, userId, token)
         return ResponseEntity.ok(snippet)
     }
-     */
 
     // US #7: Compartir snippet
     @PostMapping("/{id}/share")
@@ -225,13 +228,5 @@ class SnippetController(
         val token = principal.token.tokenValue
         snippetService.deleteSnippet(id, userId, token)
         return ResponseEntity.ok().build()
-    }
-
-    @GetMapping("/{id}/metadata")
-    fun getSnippetMetadata(
-        @PathVariable id: UUID,
-    ): ResponseEntity<SnippetResponseDTO> {
-        val snippet = snippetService.getSnippetById(id)
-        return ResponseEntity.ok(snippet)
     }
 }
