@@ -1,11 +1,10 @@
 package ingsist.snippet.runner.snippet.service
 
-import ingsist.snippet.engine.EngineService
+import ingsist.snippet.engine.EngineServiceInterface
 import ingsist.snippet.runner.snippet.domain.LanguageConfig
 import ingsist.snippet.runner.snippet.dtos.SupportedLanguageDto
 import ingsist.snippet.runner.snippet.repository.LanguageRepository
 import ingsist.snippet.shared.exception.ExternalServiceException
-import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestClientException
@@ -13,59 +12,54 @@ import org.springframework.web.client.RestClientException
 @Service
 class LanguageService(
     private val languageRepository: LanguageRepository,
-    private val engineService: EngineService,
+    private val engineService: EngineServiceInterface,
 ) {
-    @PostConstruct
-    fun syncLanguages() {
+    fun getSupportedLanguages(): List<LanguageConfig> {
         try {
             val languages = engineService.getLanguages()
             updateLanguages(languages)
         } catch (e: ExternalServiceException) {
-            println("Failed to sync languages from Engine: ${e.message}")
+            println("Warning: Could not sync languages from Engine. Using cached data. Error: ${e.message}")
         } catch (e: RestClientException) {
-            println("Failed to sync languages from Engine: ${e.message}")
+            println("Warning: Could not sync languages from Engine. Using cached data. Error: ${e.message}")
         }
+        return languageRepository.findAll()
     }
 
     @Transactional
-    fun updateLanguages(languages: List<SupportedLanguageDto>) {
-        // Group by language name to handle multiple versions
-        val groupedLanguages = languages.groupBy { it.name }
-
-        groupedLanguages.forEach { (name, dtos) ->
-            val versions = dtos.map { it.version }
-            val extension = dtos.first().extension
-            val existingConfig = languageRepository.findByLanguage(name)
+    private fun updateLanguages(languages: List<SupportedLanguageDto>) {
+        languages.forEach { dto ->
+            val existingConfig = languageRepository.findByLanguage(dto.name)
 
             if (existingConfig != null) {
-                existingConfig.versions = versions
-                existingConfig.extension = extension
-                languageRepository.save(existingConfig)
+                if (existingConfig.versions != dto.version || existingConfig.extension != dto.extension) {
+                    existingConfig.versions = dto.version
+                    existingConfig.extension = dto.extension
+                    languageRepository.save(existingConfig)
+                }
             } else {
                 languageRepository.save(
                     LanguageConfig(
-                        language = name,
-                        versions = versions,
-                        extension = extension,
+                        language = dto.name,
+                        versions = dto.version,
+                        extension = dto.extension,
                     ),
                 )
             }
         }
     }
 
-    fun getSupportedLanguages(): List<LanguageConfig> {
-        return languageRepository.findAll()
-    }
-
     fun getExtension(language: String): String {
-        return languageRepository.findByLanguage(language)?.extension ?: "txt"
+        val config = languageRepository.findAll().find { it.language.equals(language, ignoreCase = true) }
+        return config?.extension ?: "txt"
     }
 
     fun isLanguageSupported(
         language: String,
         version: String,
     ): Boolean {
-        val config = languageRepository.findByLanguage(language) ?: return false
+        val configs = getSupportedLanguages()
+        val config = configs.find { it.language.equals(language, ignoreCase = true) } ?: return false
         return config.versions.contains(version)
     }
 }
