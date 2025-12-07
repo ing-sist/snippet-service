@@ -34,6 +34,7 @@ class SnippetProcessingService(
                     snippet.id,
                     assetKey,
                     version = snippet.langVersion,
+                    language = snippet.language,
                     config = config,
                 ),
             )
@@ -59,6 +60,7 @@ class SnippetProcessingService(
                 snippet.id,
                 assetKey,
                 version = snippet.langVersion,
+                language = snippet.language,
                 config = config,
             ),
         )
@@ -75,6 +77,7 @@ class SnippetProcessingService(
                     snippet.id,
                     assetKey,
                     version = snippet.langVersion,
+                    language = snippet.language,
                     config = config,
                 ),
             )
@@ -100,6 +103,7 @@ class SnippetProcessingService(
                 snippet.id,
                 assetKey,
                 version = snippet.langVersion,
+                language = snippet.language,
                 config = config,
             ),
         )

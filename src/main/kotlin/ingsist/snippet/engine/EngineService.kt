@@ -1,8 +1,10 @@
 package ingsist.snippet.engine
 
+import ingsist.snippet.runner.snippet.dtos.SupportedLanguageDto
 import ingsist.snippet.runner.snippet.dtos.ValidateReqDto
 import ingsist.snippet.runner.snippet.dtos.ValidateResDto
 import ingsist.snippet.shared.exception.ExternalServiceException
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
@@ -47,5 +49,18 @@ class EngineService(private val engineRestClient: RestClient) : EngineServiceInt
                 )
             }
             .toBodilessEntity()
+    }
+
+    override fun getLanguages(): List<SupportedLanguageDto> {
+        return engineRestClient.get()
+            .uri("/engine/languages")
+            .retrieve()
+            .onStatus({ status -> status.isError }) { _, response ->
+                throw ExternalServiceException(
+                    "Failed to fetch languages from Engine. Status: ${response.statusCode}",
+                )
+            }
+            .body(object : ParameterizedTypeReference<List<SupportedLanguageDto>>() {})
+            ?: emptyList()
     }
 }
