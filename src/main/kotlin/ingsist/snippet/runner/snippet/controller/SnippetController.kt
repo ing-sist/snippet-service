@@ -122,9 +122,9 @@ class SnippetController(
         val code = engineService.getSnippetContent(assetKey)
         val resource = ByteArrayResource(code.toByteArray())
 
-        // 3. Retornar archivo descargable
+        // 3. Retornar archivo descargable (usar assetKey como filename para respetar extensión)
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"snippet.ps\"")
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${assetKey}\"")
             .contentType(MediaType.APPLICATION_OCTET_STREAM)
             .contentLength(resource.contentLength())
             .body(resource)
