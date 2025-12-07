@@ -57,6 +57,10 @@ class LanguageService(
         return languageRepository.findAll()
     }
 
+    fun getExtension(language: String): String {
+        return languageRepository.findByLanguage(language)?.extension ?: "txt"
+    }
+
     fun isLanguageSupported(
         language: String,
         version: String,

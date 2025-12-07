@@ -47,7 +47,7 @@ data class SnippetMetadata(
 data class SnippetVersion(
     @Id
     val versionId: UUID,
-    val assetKey: String,
+    var assetKey: String,
     val createdDate: Date,
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "snippet_id", nullable = false)

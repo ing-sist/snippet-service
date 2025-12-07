@@ -56,12 +56,19 @@ class SnippetService(
         }
 
         val lastVersion = existingSnippet.versions.last()
+        var assetKey = lastVersion.assetKey
+
+        // If language changed, update asset key extension
+        if (existingSnippet.language != snippet.language) {
+            val extension = languageService.getExtension(snippet.language)
+            assetKey = "snippet-$snippetId.$extension"
+        }
 
         val request =
             ValidateReqDto(
                 content = snippet.code,
                 snippetId = existingSnippet.id,
-                assetKey = lastVersion.assetKey,
+                assetKey = assetKey,
                 version = snippet.langVersion,
                 language = snippet.language,
             )
@@ -77,6 +84,12 @@ class SnippetService(
                         description = snippet.description,
                     )
                 snippetRepository.save(updatedSnippet)
+
+                // Update asset key if changed
+                if (assetKey != lastVersion.assetKey) {
+                    lastVersion.assetKey = assetKey
+                    snippetVersionRepository.save(lastVersion)
+                }
 
                 SnippetSubmissionResult.Success(
                     snippetId = updatedSnippet.id,
@@ -103,7 +116,8 @@ class SnippetService(
         }
 
         val snippetId = UUID.randomUUID()
-        val assetKey = "snippet-$snippetId.ps"
+        val extension = languageService.getExtension(snippet.language)
+        val assetKey = "snippet-$snippetId.$extension"
 
         val request =
             ValidateReqDto(
