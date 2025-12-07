@@ -92,12 +92,12 @@ class SnippetController(
     @PutMapping("/{id}") // Cambiado a PUT y con ID en path por convención REST
     fun updateSnippet(
         @PathVariable id: UUID,
-        @RequestBody newCode: String,
+        @RequestBody @Valid snippet: SubmitSnippetDTO,
         principal: JwtAuthenticationToken,
     ): ResponseEntity<Any> {
         val userId = principal.token.subject
         // Validamos propiedad en el servicio
-        val result = snippetService.updateSnippet(id, newCode, userId)
+        val result = snippetService.updateSnippet(id, snippet, userId)
 
         return when (result) {
             is SnippetSubmissionResult.Success -> ResponseEntity.ok(result)

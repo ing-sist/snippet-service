@@ -32,11 +32,12 @@ class SnippetService(
     private val snippetVersionRepository: SnippetVersionRepository,
     private val engineService: EngineService,
     private val permissionService: PermissionService,
+    private val languageService: LanguageService,
 ) {
     // US #2 & #4: Actualizar snippet (Owner Aware)
     fun updateSnippet(
         snippetId: UUID,
-        newCode: String,
+        snippet: SubmitSnippetDTO,
         userId: String,
     ): SnippetSubmissionResult {
         val existingSnippet = snippetRepository.findById(snippetId).orElse(null)
@@ -45,6 +46,8 @@ class SnippetService(
             when {
                 existingSnippet == null -> "Snippet not found"
                 existingSnippet.ownerId != userId -> "You are not the owner of this snippet"
+                !languageService.isLanguageSupported(snippet.language, snippet.langVersion) ->
+                    "Language ${snippet.language} version ${snippet.langVersion} is not supported"
                 else -> null
             }
 
@@ -56,18 +59,29 @@ class SnippetService(
 
         val request =
             ValidateReqDto(
-                content = newCode,
+                content = snippet.code,
                 snippetId = existingSnippet.id,
                 assetKey = lastVersion.assetKey,
-                version = existingSnippet.langVersion,
+                version = snippet.langVersion,
+                language = snippet.language,
             )
 
         return when (val validationResult = validateSnippet(request)) {
             is ValidationResult.Valid -> {
+                // Update metadata
+                val updatedSnippet =
+                    existingSnippet.copy(
+                        name = snippet.name,
+                        language = snippet.language,
+                        langVersion = snippet.langVersion,
+                        description = snippet.description,
+                    )
+                snippetRepository.save(updatedSnippet)
+
                 SnippetSubmissionResult.Success(
-                    snippetId = existingSnippet.id,
-                    name = existingSnippet.name,
-                    language = existingSnippet.language,
+                    snippetId = updatedSnippet.id,
+                    name = updatedSnippet.name,
+                    language = updatedSnippet.language,
                 )
             }
             is ValidationResult.Invalid -> {
@@ -82,6 +96,12 @@ class SnippetService(
         ownerId: String,
         token: String,
     ): SnippetSubmissionResult {
+        if (!languageService.isLanguageSupported(snippet.language, snippet.langVersion)) {
+            return SnippetSubmissionResult.InvalidSnippet(
+                listOf("Language ${snippet.language} version ${snippet.langVersion} is not supported"),
+            )
+        }
+
         val snippetId = UUID.randomUUID()
         val assetKey = "snippet-$snippetId.ps"
 
@@ -91,6 +111,7 @@ class SnippetService(
                 version = snippet.langVersion,
                 snippetId = snippetId,
                 assetKey = assetKey,
+                language = snippet.language,
             )
 
         return when (val validationResult = validateSnippet(request)) {
