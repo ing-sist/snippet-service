@@ -11,4 +11,8 @@ RUN mkdir /app
 
 COPY --from=build /home/gradle/src/build/libs/*.jar /app/spring-boot-application.jar
 
-ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=production","/app/spring-boot-application.jar"]
+RUN mkdir -p /usr/local/newrelic
+ADD ./newrelic/newrelic.jar /usr/local/newrelic/newrelic.jar
+ADD ./newrelic/newrelic.yml /usr/local/newrelic/newrelic.yml
+
+ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=production", "-javaagent:/usr/local/newrelic/newrelic.jar", "/app/spring-boot-application.jar"]
