@@ -17,6 +17,11 @@ import org.springframework.web.bind.annotation.RestController
 class UserController(
     private val userService: UserService,
 ) {
+    @GetMapping("/health")
+    fun healthCheck(): ResponseEntity<String> {
+        return ResponseEntity.ok("Snippet Service is healthy")
+    }
+
     // US #7: Buscar usuarios para compartir
     @GetMapping
     fun searchUsers(
