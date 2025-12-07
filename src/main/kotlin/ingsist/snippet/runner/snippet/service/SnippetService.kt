@@ -5,6 +5,7 @@ import ingsist.snippet.runner.snippet.domain.SnippetMetadata
 import ingsist.snippet.runner.snippet.domain.SnippetSubmissionResult
 import ingsist.snippet.runner.snippet.domain.ValidationResult
 import ingsist.snippet.runner.snippet.domain.processEngineResult
+import ingsist.snippet.runner.snippet.dtos.SnippetDetailsDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetFilterDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetResponseDTO
 import ingsist.snippet.runner.snippet.dtos.SubmitSnippetDTO
@@ -26,6 +27,7 @@ import ingsist.snippet.runner.snippet.repository.SnippetVersionRepository
 import ingsist.snippet.shared.exception.SnippetAccessDeniedException
 import ingsist.snippet.shared.exception.SnippetNotFoundException
 import jakarta.transaction.Transactional
+import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
@@ -140,7 +142,7 @@ class SnippetService(
         userId: String,
         token: String,
         filter: SnippetFilterDTO,
-    ): List<SnippetResponseDTO> {
+    ): Page<SnippetResponseDTO> {
         // 1. Obtener IDs compartidos desde Auth Service (solo si hace falta)
         val sharedIds: List<UUID> =
             if (filter.mode == "SHARED" || filter.mode == "ALL") {
@@ -151,7 +153,7 @@ class SnippetService(
 
         // Caso borde: Si pide SHARED y no tiene nada compartido, retornar vacío
         if (filter.mode == "SHARED" && sharedIds.isEmpty()) {
-            return emptyList()
+            return Page.empty()
         }
 
         // 2. Construir Specification Base según el MODO
@@ -178,15 +180,39 @@ class SnippetService(
         // 4. Ejecutar consulta
         val resultPage = snippetRepository.findAll(spec, pageable)
 
-        return resultPage.content.map { it.toDTO() }
+        return resultPage.map { it.toDTO() }
     }
 
     // US #6: Obtener snippet por ID
-    fun getSnippetById(snippetId: UUID): SnippetResponseDTO {
+    fun getSnippetById(
+        snippetId: UUID,
+        userId: String,
+        token: String,
+    ): SnippetDetailsDTO {
         val snippet =
             snippetRepository.findById(snippetId)
                 .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
-        return snippet.toDTO()
+
+        if (snippet.ownerId != userId) {
+            if (!permissionService.hasReadPermission(snippetId, token)) {
+                throw SnippetAccessDeniedException("You don't have permission to access this snippet")
+            }
+        }
+
+        val assetKey = getSnippetAssetKeyById(snippetId)
+        val content = engineService.getSnippetContent(assetKey)
+
+        return SnippetDetailsDTO(
+            id = snippet.id,
+            name = snippet.name,
+            language = snippet.language,
+            description = snippet.description,
+            ownerId = snippet.ownerId,
+            version = snippet.langVersion,
+            conformance = snippet.conformance.name,
+            createdAt = snippet.createdAt.toString(),
+            content = content,
+        )
     }
 
     // US #7: Compartir snippet
