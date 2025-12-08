@@ -1,5 +1,7 @@
 package ingsist.snippet.engine
 
+import ingsist.snippet.runner.snippet.dtos.ExecuteReqDTO
+import ingsist.snippet.runner.snippet.dtos.ExecuteResDTO
 import ingsist.snippet.runner.snippet.dtos.SupportedLanguageDto
 import ingsist.snippet.runner.snippet.dtos.ValidateReqDto
 import ingsist.snippet.runner.snippet.dtos.ValidateResDto
@@ -24,6 +26,20 @@ class EngineService(private val engineRestClient: RestClient) : EngineServiceInt
         return response.body ?: throw ExternalServiceException(
             "Engine parse returned empty body",
         )
+    }
+
+    override fun execute(snippet: ExecuteReqDTO): ExecuteResDTO {
+        val response =
+            engineRestClient.post()
+                .uri("/engine/execute")
+                .body(snippet)
+                .retrieve()
+                .onStatus({ status -> status.isError }) { _, httpResponse ->
+                    throw ExternalServiceException("Engine execute failed with status code: ${httpResponse.statusCode}")
+                }
+                .toEntity(ExecuteResDTO::class.java)
+        return response.body
+            ?: throw ExternalServiceException("Engine execute returned empty body")
     }
 
     override fun getSnippetContent(assetKey: String): String {

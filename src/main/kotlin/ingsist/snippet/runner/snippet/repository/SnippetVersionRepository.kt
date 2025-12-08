@@ -23,4 +23,11 @@ interface SnippetVersionRepository : JpaRepository<SnippetVersion, UUID> {
         @Param("snippetId") snippetId: UUID,
         pageable: Pageable,
     ): Page<SnippetVersion>
+
+    fun findBySnippetIdAndVersionTag(
+        snippetId: UUID,
+        versionTag: String,
+    ): SnippetVersion?
+
+    fun findFirstBySnippetIdOrderByCreatedDateDesc(snippetId: UUID): SnippetVersion?
 }

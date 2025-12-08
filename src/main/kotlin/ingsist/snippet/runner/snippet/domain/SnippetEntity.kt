@@ -49,6 +49,8 @@ data class SnippetVersion(
     val versionId: UUID,
     var assetKey: String,
     val createdDate: Date,
+    @Column(name = "version_tag")
+    val versionTag: String,
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "snippet_id", nullable = false)
     val snippet: SnippetMetadata,
