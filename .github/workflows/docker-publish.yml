@@ -34,5 +34,5 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ github.ref_name }}-latest
             ghcr.io/${{ github.repository }}:${{ github.ref_name }}-${{ github.sha }}
           build-args: |
-            GPR_USER=${{ secrets.USERNAME }}
-            GPR_KEY=${{ secrets.TOKEN }}
+            USERNAME=${{ secrets.USERNAME }}
+            TOKEN=${{ secrets.TOKEN }}
