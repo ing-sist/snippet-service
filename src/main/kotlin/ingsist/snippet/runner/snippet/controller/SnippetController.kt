@@ -7,7 +7,6 @@ import ingsist.snippet.runner.snippet.dtos.SnippetFilterDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetResponseDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetUploadDTO
 import ingsist.snippet.runner.snippet.dtos.SubmitSnippetDTO
-import ingsist.snippet.runner.snippet.service.SnippetProcessingService
 import ingsist.snippet.runner.snippet.service.SnippetService
 import jakarta.validation.Valid
 import org.springframework.core.io.ByteArrayResource
@@ -36,7 +35,6 @@ import java.util.UUID
 class SnippetController(
     private val snippetService: SnippetService,
     private val engineService: EngineService,
-    private val snippetProcessingService: SnippetProcessingService,
 ) {
     // US #1: Crear snippet (Upload file)
     @PostMapping("/upload-from-file")
@@ -176,40 +174,8 @@ class SnippetController(
     }
 
     // US #12: Formatting automatico de snippets
-    @PostMapping("/format-all")
-    fun formatSnippetAutomatically(principal: JwtAuthenticationToken): ResponseEntity<SnippetResponseDTO> {
-        val userId = principal.token.subject
-        snippetProcessingService.formatAllSnippets(userId)
-        return ResponseEntity.ok().build()
-    }
 
     // US #15: Linting automatico de snippets
-    @PostMapping("/lint-all")
-    fun lintSnippetAutomatically(principal: JwtAuthenticationToken): ResponseEntity<SnippetResponseDTO> {
-        val userId = principal.token.subject
-        snippetProcessingService.lintAllSnippets(userId)
-        return ResponseEntity.ok().build()
-    }
-
-    @PostMapping("/{id}/format")
-    fun formatSnippet(
-        principal: JwtAuthenticationToken,
-        @PathVariable id: UUID,
-    ): ResponseEntity<SnippetResponseDTO> {
-        val userId = principal.token.subject
-        snippetProcessingService.formatSnippet(userId, id)
-        return ResponseEntity.ok().build()
-    }
-
-    @PostMapping("/{id}/lint")
-    fun lintSnippet(
-        principal: JwtAuthenticationToken,
-        @PathVariable id: UUID,
-    ): ResponseEntity<SnippetResponseDTO> {
-        val userId = principal.token.subject
-        snippetProcessingService.lintSnippet(userId, id)
-        return ResponseEntity.ok().build()
-    }
 
     @GetMapping("/{id}/asset-key")
     fun getAssetKey(

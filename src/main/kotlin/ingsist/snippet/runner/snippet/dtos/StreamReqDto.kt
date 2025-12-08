@@ -1,4 +1,5 @@
-import ingsist.snippet.runner.snippet.dtos.OwnerConfigDto
+package ingsist.snippet.runner.snippet.dtos
+
 import java.util.UUID
 
 data class StreamReqDto(

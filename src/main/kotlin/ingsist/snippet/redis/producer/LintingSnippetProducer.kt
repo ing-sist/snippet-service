@@ -1,8 +1,7 @@
 package ingsist.snippet.redis.producer
 
-import SnippetEventProducer
-import StreamReqDto
 import com.fasterxml.jackson.databind.ObjectMapper
+import ingsist.snippet.runner.snippet.dtos.StreamReqDto
 import org.austral.ingsis.redis.RedisStreamProducer
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value

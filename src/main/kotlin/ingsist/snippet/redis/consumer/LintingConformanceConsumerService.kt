@@ -1,14 +1,14 @@
 package ingsist.snippet.redis.consumer
 
 import ingsist.snippet.runner.snippet.dtos.LintingConformanceStatusDTO
-import ingsist.snippet.runner.snippet.service.SnippetProcessingService
+import ingsist.snippet.runner.snippet.service.RulesService
 import org.springframework.stereotype.Service
 
 @Service
 class LintingConformanceConsumerService(
-    private val snippetProcessingService: SnippetProcessingService,
+    private val rulesService: RulesService,
 ) : ConsumerConformanceStreamService {
     override fun saveConformance(conformance: LintingConformanceStatusDTO) {
-        snippetProcessingService.updateLintingConformance(conformance)
+        rulesService.updateLintingConformance(conformance)
     }
 }
