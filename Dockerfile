@@ -1,6 +1,7 @@
 FROM gradle:8.5.0-jdk21 AS build
-COPY  . /home/gradle/src
-WORKDIR /home/gradle/src
+
+WORKDIR /workspace
+COPY . .
 
 # Args para credenciales de GitHub Packages
 ARG GPR_USER
