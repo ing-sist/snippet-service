@@ -2,6 +2,13 @@ FROM gradle:8.5.0-jdk21 AS build
 COPY  . /home/gradle/src
 WORKDIR /home/gradle/src
 
+# Args para credenciales de GitHub Packages
+ARG GPR_USER
+ARG GPR_KEY
+
+ENV GPR_USER=$GPR_USER
+ENV GPR_KEY=$GPR_KEY
+
 RUN gradle assemble
 FROM eclipse-temurin:21-jre
 
