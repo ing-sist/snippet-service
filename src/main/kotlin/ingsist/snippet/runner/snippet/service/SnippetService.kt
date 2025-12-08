@@ -34,7 +34,6 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
-import org.springframework.web.client.RestClientException
 import java.util.UUID
 
 @Service
@@ -322,7 +321,7 @@ class SnippetService(
             log.info("Deleted snippet asset with key: {} from engine service", assetKey)
         } catch (e: ExternalServiceException) {
             log.error("Failed to delete asset from Engine: ${e.message}")
-            throw RestClientException("Failed to delete snippet asset from Engine", e)
+            throw e
         }
     }
 
