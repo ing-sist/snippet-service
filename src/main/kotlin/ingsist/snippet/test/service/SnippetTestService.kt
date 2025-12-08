@@ -140,11 +140,12 @@ class SnippetTestService(
         versionTag: String,
         assetKey: String,
     ): EngineExecution {
+        val content = engineService.getSnippetContent(assetKey)
         val response =
             engineService.execute(
                 ExecuteReqDTO(
                     snippetId = snippet.id,
-                    code = "",
+                    content = content,
                     version = versionTag,
                     language = snippet.language,
                     assetKey = assetKey,
