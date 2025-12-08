@@ -18,6 +18,7 @@ import ingsist.snippet.runner.snippet.repository.SnippetVersionRepository
 import ingsist.snippet.shared.exception.SnippetAccessDeniedException
 import ingsist.snippet.shared.exception.SnippetNotFoundException
 import jakarta.transaction.Transactional
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -36,12 +37,15 @@ class SnippetService(
     private val permissionService: PermissionService,
     private val languageService: LanguageService,
 ) {
+    val log = LoggerFactory.getLogger(SnippetService::class.java)
+
     // US #2 & #4: Actualizar snippet (Owner Aware)
     fun updateSnippet(
         snippetId: UUID,
         snippet: SubmitSnippetDTO,
         userId: String,
     ): SnippetSubmissionResult {
+        log.info("Looking for existing snippet with id: $snippetId in repository")
         val existingSnippet = snippetRepository.findById(snippetId).orElse(null)
 
         val validationError =
@@ -52,6 +56,8 @@ class SnippetService(
                     "Language ${snippet.language} version ${snippet.langVersion} is not supported"
                 else -> null
             }
+
+        log.error("Validation error: $validationError for snippet id: $snippetId")
 
         if (validationError != null) {
             return SnippetSubmissionResult.InvalidSnippet(listOf(validationError))
@@ -93,6 +99,8 @@ class SnippetService(
                     snippetVersionRepository.save(lastVersion)
                 }
 
+                log.info("Snippet with id: $snippetId updated successfully")
+
                 SnippetSubmissionResult.Success(
                     snippetId = updatedSnippet.id,
                     name = updatedSnippet.name,
@@ -100,6 +108,7 @@ class SnippetService(
                 )
             }
             is ValidationResult.Invalid -> {
+                log.info("Snippet validation with id $snippetId failed: ${validationResult.message}")
                 SnippetSubmissionResult.InvalidSnippet(validationResult.message)
             }
         }
@@ -112,6 +121,10 @@ class SnippetService(
         token: String,
     ): SnippetSubmissionResult {
         if (!languageService.isLanguageSupported(snippet.language, snippet.langVersion)) {
+            log.info(
+                "Creating snippet failed: Language ${snippet.language} version ${snippet.langVersion} " +
+                    "is not supported",
+            )
             return SnippetSubmissionResult.InvalidSnippet(
                 listOf("Language ${snippet.language} version ${snippet.langVersion} is not supported"),
             )
@@ -119,7 +132,9 @@ class SnippetService(
 
         val snippetId = UUID.randomUUID()
         val extension = languageService.getExtension(snippet.language)
+        log.debug("Generated snippetId: {} with extension: {}", snippetId, extension)
         val assetKey = "snippet-$snippetId.$extension"
+        log.debug("Generated assetKey for snippet: {}", assetKey)
 
         val request =
             ValidateReqDto(
@@ -132,6 +147,7 @@ class SnippetService(
 
         return when (val validationResult = validateSnippet(request)) {
             is ValidationResult.Invalid -> {
+                log.info("Snippet validation failed: ${validationResult.message}")
                 SnippetSubmissionResult.InvalidSnippet(validationResult.message)
             }
             is ValidationResult.Valid -> {
@@ -147,7 +163,9 @@ class SnippetService(
                         conformance = ConformanceStatus.PENDING,
                         createdAt = LocalDateTime.now(),
                     )
+                log.debug("Saving snippet metadata for snippetId: {}", snippetId)
                 snippetRepository.save(snippetMetadata)
+                log.debug("Snippet metadata saved successfully for snippetId: {}", snippetId)
 
                 val snippetVersion =
                     SnippetVersion(
@@ -157,9 +175,13 @@ class SnippetService(
                         snippet = snippetMetadata,
                     )
                 snippetVersionRepository.save(snippetVersion)
+                log.debug("Snippet version saved successfully for snippetId: {}", snippetId)
 
                 // Llama Auth para registrar ownership (US #3 Requisito)
                 permissionService.grantOwnerPermission(snippetId, ownerId, token)
+                log.debug("Granted owner permission for user: {} on snippetId: {}", ownerId, snippetId)
+
+                log.info("Snippet created successfully with id: {}", snippetId)
 
                 SnippetSubmissionResult.Success(
                     snippetId = snippetMetadata.id,
@@ -243,12 +265,14 @@ class SnippetService(
         val snippet =
             snippetRepository.findById(snippetId)
                 .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
+        log.debug("Found snippet with id: {}. Checking access permissions for user: {}", snippetId, userId)
 
         if (snippet.ownerId != userId) {
             if (!permissionService.hasReadPermission(snippetId, token)) {
                 throw SnippetAccessDeniedException("You don't have permission to access this snippet")
             }
         }
+        log.debug("Access granted for user: {}", userId)
 
         val assetKey = getSnippetAssetKeyById(snippetId)
         val content = engineService.getSnippetContent(assetKey)
@@ -281,8 +305,10 @@ class SnippetService(
         if (snippet.ownerId != ownerId) {
             throw SnippetAccessDeniedException("You don't have permission to share this snippet (not the owner)")
         }
+        log.debug("Granting read permission to user: {} for snippet id: {}", targetUserId, snippetId)
 
         permissionService.grantReadPermission(snippetId, targetUserId, token)
+        log.info("Snippet id: {} shared successfully with user: {}", snippetId, targetUserId)
     }
 
     fun getSnippetForDownload(
@@ -293,6 +319,7 @@ class SnippetService(
         val snippet =
             snippetRepository.findById(snippetId)
                 .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
+        log.debug("Found snippet with id: {}. Checking access permissions for user: {}", snippetId, userId)
 
         if (snippet.ownerId != userId) {
             if (!permissionService.hasReadPermission(snippetId, token)) {
@@ -319,6 +346,7 @@ class SnippetService(
         val snippet =
             snippetRepository.findById(snippetId)
                 .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
+        log.debug("Found snippet with id: {}. Checking access permissions for user: {}", snippetId, userId)
 
         if (snippet.ownerId != userId) {
             throw SnippetAccessDeniedException("You don't have permission to delete this snippet (not the owner)")
@@ -326,7 +354,10 @@ class SnippetService(
 
         val assetKey = getSnippetAssetKeyById(snippetId)
         engineService.deleteSnippet(assetKey)
+        log.info("Deleted snippet asset with key: {} from engine service", assetKey)
         snippetRepository.delete(snippet)
+        log.info("Deleted snippet metadata with id: {} from repository", snippetId)
         permissionService.deleteSnippetPermissions(snippetId, token)
+        log.info("Deleted snippet permissions for snippet id: {} from permission service", snippetId)
     }
 }
