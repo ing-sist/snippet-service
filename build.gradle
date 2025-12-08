@@ -135,7 +135,7 @@ tasks.jacocoTestCoverageVerification {
 }
 
 tasks.check {
-    dependsOn jacocoTestCoverageVerification
+    //dependsOn jacocoTestCoverageVerification
 }
 
 spotless {

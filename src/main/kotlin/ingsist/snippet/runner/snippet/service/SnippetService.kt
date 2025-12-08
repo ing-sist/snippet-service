@@ -1,10 +1,8 @@
 package ingsist.snippet.runner.snippet.service
 
 import ingsist.snippet.engine.EngineService
-import ingsist.snippet.runner.snippet.domain.ConformanceStatus
 import ingsist.snippet.runner.snippet.domain.SnippetMetadata
 import ingsist.snippet.runner.snippet.domain.SnippetSubmissionResult
-import ingsist.snippet.runner.snippet.domain.SnippetVersion
 import ingsist.snippet.runner.snippet.domain.ValidationResult
 import ingsist.snippet.runner.snippet.domain.processEngineResult
 import ingsist.snippet.runner.snippet.dtos.SnippetDetailsDTO
@@ -12,6 +10,17 @@ import ingsist.snippet.runner.snippet.dtos.SnippetFilterDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetResponseDTO
 import ingsist.snippet.runner.snippet.dtos.SubmitSnippetDTO
 import ingsist.snippet.runner.snippet.dtos.ValidateReqDto
+import ingsist.snippet.runner.snippet.helpers.adjustedAssetKey
+import ingsist.snippet.runner.snippet.helpers.assetKeyForLanguage
+import ingsist.snippet.runner.snippet.helpers.createMetadata
+import ingsist.snippet.runner.snippet.helpers.createVersion
+import ingsist.snippet.runner.snippet.helpers.invalidSnippet
+import ingsist.snippet.runner.snippet.helpers.toDTO
+import ingsist.snippet.runner.snippet.helpers.updateAssetKeyIfChanged
+import ingsist.snippet.runner.snippet.helpers.updateWith
+import ingsist.snippet.runner.snippet.helpers.validateLanguage
+import ingsist.snippet.runner.snippet.helpers.validateRequest
+import ingsist.snippet.runner.snippet.helpers.versionTagOrDefault
 import ingsist.snippet.runner.snippet.repository.SnippetRepository
 import ingsist.snippet.runner.snippet.repository.SnippetSpecification
 import ingsist.snippet.runner.snippet.repository.SnippetVersionRepository
@@ -26,8 +35,6 @@ import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClientException
-import java.time.LocalDateTime
-import java.util.Date
 import java.util.UUID
 
 @Service
@@ -50,77 +57,41 @@ class SnippetService(
     ): SnippetSubmissionResult {
         log.info("Looking for existing snippet with id: $snippetId in repository")
         val existingSnippet = snippetRepository.findById(snippetId).orElse(null)
-
-        val validationError =
-            when {
-                existingSnippet == null -> "Snippet not found"
-                existingSnippet.ownerId != userId -> "You are not the owner of this snippet"
-                !languageService.isLanguageSupported(snippet.language, snippet.langVersion) ->
-                    "Language ${snippet.language} version ${snippet.langVersion} is not supported"
-                else -> null
-            }
-
-        log.error("Validation error: $validationError for snippet id: $snippetId")
-
+        val validationError = validationErrorForUpdate(existingSnippet, userId, snippet)
         if (validationError != null) {
-            return SnippetSubmissionResult.InvalidSnippet(listOf(validationError))
+            log.error("Validation error: $validationError for snippet id: $snippetId")
+            return invalidSnippet(validationError)
         }
 
-        val lastVersion = existingSnippet.versions.last()
-        var assetKey = lastVersion.assetKey
-
-        // If language changed, update asset key extension
-        if (existingSnippet.language != snippet.language) {
-            val extension = languageService.getExtension(snippet.language)
-            assetKey = "snippet-$snippetId.$extension"
-        }
-
-        val request =
-            ValidateReqDto(
-                content = snippet.code,
-                snippetId = existingSnippet.id,
-                assetKey = assetKey,
-                version = snippet.langVersion,
-                language = snippet.language,
+        val snippetMetadata = existingSnippet!!
+        val lastVersion = snippetMetadata.versions.last()
+        val assetKey =
+            adjustedAssetKey(
+                snippetId = snippetId,
+                newLanguage = snippet.language,
+                currentLanguage = snippetMetadata.language,
+                currentAssetKey = lastVersion.assetKey,
+                languageService = languageService,
             )
+        val request = validateRequest(snippet, assetKey, snippetMetadata.id)
 
         return when (val validationResult = validateSnippet(request)) {
+            is ValidationResult.Invalid -> {
+                log.info("Snippet validation with id $snippetId failed: ${validationResult.message}")
+                SnippetSubmissionResult.InvalidSnippet(validationResult.message)
+            }
             is ValidationResult.Valid -> {
-                // Update metadata
-                val updatedSnippet =
-                    existingSnippet.copy(
-                        name = snippet.name,
-                        language = snippet.language,
-                        langVersion = snippet.langVersion,
-                        description = snippet.description,
-                    )
-                snippetRepository.save(updatedSnippet)
-
-                // Update asset key if changed
-                if (assetKey != lastVersion.assetKey) {
-                    lastVersion.assetKey = assetKey
-                    snippetVersionRepository.save(lastVersion)
-                }
+                val updatedSnippet = snippetRepository.save(snippetMetadata.updateWith(snippet))
+                snippetVersionRepository.updateAssetKeyIfChanged(lastVersion, assetKey)
 
                 log.info("Snippet with id: $snippetId updated successfully")
-
-                try {
-                    rulesService.lintSnippet(userId, updatedSnippet.id)
-                } catch (
-                    @Suppress("TooGenericExceptionCaught") e: Exception,
-                ) {
-                    log.error("Error linting snippet $snippetId", e)
-                }
+                rulesService.lintSnippet(userId, updatedSnippet.id)
 
                 SnippetSubmissionResult.Success(
                     snippetId = updatedSnippet.id,
                     name = updatedSnippet.name,
                     language = updatedSnippet.language,
                 )
-            }
-            is ValidationResult.Invalid -> {
-                log.info("Snippet validation with id $snippetId failed: ${validationResult.message}")
-                SnippetSubmissionResult.InvalidSnippet(validationResult.message)
             }
         }
     }
@@ -131,102 +102,70 @@ class SnippetService(
         ownerId: String,
         token: String,
     ): SnippetSubmissionResult {
-        if (!languageService.isLanguageSupported(snippet.language, snippet.langVersion)) {
+        validateLanguage(snippet, languageService)?.let {
             log.info(
                 "Creating snippet failed: Language ${snippet.language} version ${snippet.langVersion} " +
                     "is not supported",
             )
-            return SnippetSubmissionResult.InvalidSnippet(
-                listOf("Language ${snippet.language} version ${snippet.langVersion} is not supported"),
-            )
+            return invalidSnippet(it)
         }
 
         val snippetId = UUID.randomUUID()
-        val extension = languageService.getExtension(snippet.language)
-        log.debug("Generated snippetId: {} with extension: {}", snippetId, extension)
-        val assetKey = "snippet-$snippetId.$extension"
-        log.debug("Generated assetKey for snippet: {}", assetKey)
-
-        val request =
-            ValidateReqDto(
-                content = snippet.code,
-                version = snippet.langVersion,
-                snippetId = snippetId,
-                assetKey = assetKey,
-                language = snippet.language,
-            )
+        val assetKey = assetKeyForLanguage(snippetId, snippet.language, languageService)
+        val request = validateRequest(snippet, assetKey, snippetId)
 
         return when (val validationResult = validateSnippet(request)) {
             is ValidationResult.Invalid -> {
                 log.info("Snippet validation failed: ${validationResult.message}")
                 SnippetSubmissionResult.InvalidSnippet(validationResult.message)
             }
+
             is ValidationResult.Valid -> {
-                // Guardar Metadata con OwnerId
-                val snippetMetadata =
-                    SnippetMetadata(
-                        id = snippetId,
-                        name = snippet.name,
-                        language = snippet.language,
-                        description = snippet.description,
-                        ownerId = ownerId,
-                        langVersion = snippet.langVersion,
-                        conformance = ConformanceStatus.PENDING,
-                        createdAt = LocalDateTime.now(),
-                    )
-                log.debug("Saving snippet metadata for snippetId: {}", snippetId)
-                snippetRepository.save(snippetMetadata)
-                log.debug("Snippet metadata saved successfully for snippetId: {}", snippetId)
-
-                val snippetVersion =
-                    SnippetVersion(
-                        versionId = UUID.randomUUID(),
-                        assetKey = assetKey,
-                        createdDate = Date(),
-                        snippet = snippetMetadata,
-                    )
-                snippetVersionRepository.save(snippetVersion)
-                log.debug("Snippet version saved successfully for snippetId: {}", snippetId)
-
-                // Llama Auth para registrar ownership (US #3 Requisito)
-                permissionService.grantOwnerPermission(snippetId, ownerId, token)
-                log.debug("Granted owner permission for user: {} on snippetId: {}", ownerId, snippetId)
-
-                log.info("Snippet created successfully with id: {}", snippetId)
-
-                try {
-                    rulesService.lintSnippet(ownerId, snippetId)
-                } catch (
-                    @Suppress("TooGenericExceptionCaught") e: Exception,
-                ) {
-                    log.error("Error linting snippet $snippetId", e)
-                }
-
-                SnippetSubmissionResult.Success(
-                    snippetId = snippetMetadata.id,
-                    name = snippetMetadata.name,
-                    language = snippetMetadata.language,
-                )
+                createSnippetAndPermissions(snippetId, snippet, ownerId, assetKey, token)
             }
         }
     }
 
-    private fun validateSnippet(snippet: ValidateReqDto): ValidationResult {
-        return processEngineResult(engineService.parse(snippet))
+    private fun validationErrorForUpdate(
+        snippetMetadata: SnippetMetadata?,
+        userId: String,
+        snippet: SubmitSnippetDTO,
+    ): String? {
+        val languageError = validateLanguage(snippet, languageService)
+        return when {
+            snippetMetadata == null -> "Snippet not found"
+            snippetMetadata.ownerId != userId -> "You are not the owner of this snippet"
+            languageError != null -> languageError
+            else -> null
+        }
     }
 
-    // Helper para DTO
-    private fun SnippetMetadata.toDTO(): SnippetResponseDTO {
-        return SnippetResponseDTO(
-            id = this.id,
-            name = this.name,
-            language = this.language,
-            description = this.description,
-            ownerId = this.ownerId,
-            conformance = this.conformance.name,
-            version = langVersion,
-            createdAt = this.createdAt.toString(),
+    private fun createSnippetAndPermissions(
+        snippetId: UUID,
+        snippet: SubmitSnippetDTO,
+        ownerId: String,
+        assetKey: String,
+        token: String,
+    ): SnippetSubmissionResult.Success {
+        val snippetMetadata = snippetRepository.save(createMetadata(snippetId, snippet, ownerId))
+        log.debug("Snippet version saved successfully for snippetId: {}", snippetId)
+        val versionTag = versionTagOrDefault(snippet.versionTag, snippet.langVersion)
+        log.debug("Saving snippet metadata for snippetId: {}", snippetId)
+        snippetVersionRepository.save(createVersion(snippetMetadata, assetKey, versionTag))
+        log.debug("Snippet metadata saved successfully for snippetId: {}", snippetId)
+        permissionService.grantOwnerPermission(snippetId, ownerId, token)
+        log.debug("Granted owner permission for user: {} on snippetId: {}", ownerId, snippetId)
+        log.info("Snippet created successfully with id: {}", snippetId)
+        rulesService.lintSnippet(ownerId, snippetId)
+        return SnippetSubmissionResult.Success(
+            snippetId = snippetMetadata.id,
+            name = snippetMetadata.name,
+            language = snippetMetadata.language,
         )
+    }
+
+    private fun validateSnippet(snippet: ValidateReqDto): ValidationResult {
+        return processEngineResult(engineService.parse(snippet))
     }
 
     // US #5: Listar snippets
