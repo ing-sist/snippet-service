@@ -12,6 +12,7 @@ import ingsist.snippet.runner.snippet.repository.SnippetVersionRepository
 import ingsist.snippet.runner.user.service.UserService
 import ingsist.snippet.shared.exception.SnippetAccessDeniedException
 import ingsist.snippet.shared.exception.SnippetNotFoundException
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -25,11 +26,14 @@ class RulesService(
     private val formattingSnippetProducer: FormattingSnippetProducer,
     private val lintingSnippetProducer: LintingSnippetProducer,
 ) {
+    private val log = LoggerFactory.getLogger(RulesService::class.java)
+
     @Transactional
     fun updateLintRules(
         userId: String,
         newRules: LintingRulesDTO,
     ) {
+        log.info("Updating linting rules for user $userId")
         val currentConfig = userService.getUserConfig(userId)
         val updatedConfig =
             currentConfig.copy(
@@ -47,6 +51,7 @@ class RulesService(
         userId: String,
         newRules: FormattingRulesDTO,
     ) {
+        log.info("Updating formatting rules for user $userId")
         val currentConfig = userService.getUserConfig(userId)
         val updatedConfig =
             currentConfig.copy(
@@ -64,6 +69,7 @@ class RulesService(
         userId: String,
         snippetId: UUID,
     ) {
+        log.info("Formatting snippet $snippetId for user $userId")
         val snippet =
             snippetRepository.findById(snippetId)
                 .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
@@ -86,6 +92,7 @@ class RulesService(
     }
 
     fun updateLintingConformance(conformance: LintingConformanceStatusDTO) {
+        log.info("Updating linting conformance for snippet ${conformance.snippetId} to ${conformance.status}")
         val snippet =
             snippetRepository.findById(conformance.snippetId)
                 .orElseThrow {
@@ -129,6 +136,7 @@ class RulesService(
         userId: String,
         config: OwnerConfigDto,
     ) {
+        log.info("Publishing all snippets for linting for user $userId")
         val snippets = snippetRepository.findAllByOwnerId(userId, PageRequest.of(0, Int.MAX_VALUE)).content
         snippets.forEach { snippet ->
             val latestVersionPage = snippetVersionRepository.findLatestBySnippetId(snippet.id, PageRequest.of(0, 1))
@@ -151,6 +159,7 @@ class RulesService(
         userId: String,
         config: OwnerConfigDto,
     ) {
+        log.info("Publishing all snippets for formatting for user $userId")
         val snippets = snippetRepository.findAllByOwnerId(userId, PageRequest.of(0, Int.MAX_VALUE)).content
         snippets.forEach { snippet ->
             val latestVersionPage = snippetVersionRepository.findLatestBySnippetId(snippet.id, PageRequest.of(0, 1))

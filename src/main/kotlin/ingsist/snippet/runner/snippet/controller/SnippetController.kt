@@ -9,6 +9,7 @@ import ingsist.snippet.runner.snippet.dtos.SnippetUploadDTO
 import ingsist.snippet.runner.snippet.dtos.SubmitSnippetDTO
 import ingsist.snippet.runner.snippet.service.SnippetService
 import jakarta.validation.Valid
+import org.slf4j.LoggerFactory
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.Resource
 import org.springframework.data.domain.Page
@@ -36,6 +37,8 @@ class SnippetController(
     private val snippetService: SnippetService,
     private val engineService: EngineService,
 ) {
+    val log = LoggerFactory.getLogger(SnippetController::class.java)
+
     // US #1: Crear snippet (Upload file)
     @PostMapping("/upload-from-file")
     fun uploadSnippetFromFile(
@@ -46,7 +49,9 @@ class SnippetController(
         val code = file.bytes.toString(Charsets.UTF_8)
         val userId = principal.token.subject
         val token = principal.token.tokenValue
-        return uploadSnippetLogic(code, params, userId, token)
+        log.info("Received upload snippet in from file request by user $userId")
+        val result = uploadSnippetLogic(code, params, userId, token)
+        return result
     }
 
     // US #3: Crear snippet (Editor)
@@ -58,7 +63,9 @@ class SnippetController(
     ): ResponseEntity<Any> {
         val userId = principal.token.subject
         val token = principal.token.tokenValue
-        return uploadSnippetLogic(code, params, userId, token)
+        log.info("Received upload snippet from inline request by user $userId")
+        val result = uploadSnippetLogic(code, params, userId, token)
+        return result
     }
 
     // Lógica común de creación
@@ -81,10 +88,14 @@ class SnippetController(
         val result = snippetService.createSnippet(snippet, ownerId, token)
 
         return when (result) {
-            is SnippetSubmissionResult.Success ->
+            is SnippetSubmissionResult.Success -> {
+                log.info("Snippet created with ID: ${result.snippetId} for user $ownerId")
                 ResponseEntity.status(HttpStatus.CREATED).body(result)
-            is SnippetSubmissionResult.InvalidSnippet ->
+            }
+            is SnippetSubmissionResult.InvalidSnippet -> {
+                log.error("Snippet creation failed for user $ownerId: ${result.message}")
                 ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
+            }
         }
     }
 
@@ -96,13 +107,19 @@ class SnippetController(
         principal: JwtAuthenticationToken,
     ): ResponseEntity<Any> {
         val userId = principal.token.subject
+        log.info("Received update request for snippet ID: $id by user $userId")
         // Validamos propiedad en el servicio
         val result = snippetService.updateSnippet(id, snippet, userId)
 
         return when (result) {
-            is SnippetSubmissionResult.Success -> ResponseEntity.ok(result)
-            is SnippetSubmissionResult.InvalidSnippet ->
+            is SnippetSubmissionResult.Success -> {
+                log.info("Snippet with ID: ${result.snippetId} updated successfully for user $userId")
+                ResponseEntity.ok(result)
+            }
+            is SnippetSubmissionResult.InvalidSnippet -> {
+                log.error("Snippet update failed for user $userId: ${result.message}")
                 ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(result)
+            }
         }
     }
 
@@ -115,13 +132,22 @@ class SnippetController(
         val userId = principal.token.subject
         val token = principal.token.tokenValue
 
+        log.info("Received download request for snippet ID: $id by user $userId")
         // 1. Obtener Asset Key (validando permisos)
         val assetKey = snippetService.getSnippetForDownload(id, userId, token)
-
+        log.debug("Asset Key fetched for snippet ID {}: {}", id, assetKey)
         // 2. Obtener contenido desde Engine
         val code = engineService.getSnippetContent(assetKey)
         val resource = ByteArrayResource(code.toByteArray())
 
+        log.info("Preparing download response...")
+
+        log.info(
+            "Successfully prepared download for snippet {} for user {} (assetKey={})",
+            id,
+            userId,
+            assetKey,
+        )
         // 3. Retornar archivo descargable (usar assetKey como filename para respetar extensión)
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${assetKey}\"")
@@ -138,12 +164,14 @@ class SnippetController(
         @ModelAttribute filter: SnippetFilterDTO,
     ): ResponseEntity<Page<SnippetResponseDTO>> {
         val userId = principal.token.subject
+        log.info("Received request to list snippets for user $userId with filter $filter")
         val snippets =
             snippetService.getAllSnippets(
                 userId = userId,
                 token = principal.token.tokenValue,
                 filter = filter,
             )
+        log.info("getAllSnippets returned {} items for userId={}", snippets.totalElements, userId)
         return ResponseEntity.ok(snippets)
     }
 
@@ -154,8 +182,10 @@ class SnippetController(
         principal: JwtAuthenticationToken,
     ): ResponseEntity<SnippetDetailsDTO> {
         val userId = principal.token.subject
+        log.info("Received request to get details for snippet ID: $id by user $userId")
         val token = principal.token.tokenValue
         val snippet = snippetService.getSnippetById(id, userId, token)
+        log.info("Details for snippet ID: $id retrieved successfully for user $userId")
         return ResponseEntity.ok(snippet)
     }
 
@@ -168,8 +198,10 @@ class SnippetController(
     ): ResponseEntity<Void> {
         val userId = principal.token.subject
         val token = principal.token.tokenValue
+        log.info("Received request to share snippet ID: $id from user $userId to user $targetUserId")
 
         snippetService.shareSnippet(id, targetUserId, userId, token)
+        log.info("Snippet ID: $id shared successfully from user $userId to user $targetUserId")
         return ResponseEntity.ok().build()
     }
 
@@ -181,7 +213,9 @@ class SnippetController(
     fun getAssetKey(
         @PathVariable id: UUID,
     ): ResponseEntity<String> {
+        log.debug("Received request to get asset key for snippet ID: {}", id)
         val assetKey = snippetService.getSnippetAssetKeyById(id)
+        log.debug("Returning asset key for snippet ID: {}", id)
         return ResponseEntity.ok(assetKey)
     }
 
@@ -190,9 +224,11 @@ class SnippetController(
         @PathVariable id: UUID,
         principal: JwtAuthenticationToken,
     ): ResponseEntity<Void> {
+        log.info("Received request to delete snippet ID: $id")
         val userId = principal.token.subject
         val token = principal.token.tokenValue
         snippetService.deleteSnippet(id, userId, token)
+        log.info("Snippet ID: $id deleted successfully")
         return ResponseEntity.ok().build()
     }
 }

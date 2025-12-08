@@ -12,7 +12,7 @@ ENV TOKEN=$TOKEN
 RUN gradle assemble
 FROM eclipse-temurin:21-jre
 
-EXPOSE 8080
+EXPOSE 8082
 
 RUN mkdir /app
 

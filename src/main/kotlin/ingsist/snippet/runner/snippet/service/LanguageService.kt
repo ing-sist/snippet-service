@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestClientException
 
 @Service
+@Transactional
 class LanguageService(
     private val languageRepository: LanguageRepository,
     private val engineService: EngineServiceInterface,
@@ -26,7 +27,6 @@ class LanguageService(
         return languageRepository.findAll()
     }
 
-    @Transactional
     private fun updateLanguages(languages: List<SupportedLanguageDto>) {
         languages.forEach { dto ->
             val existingConfig = languageRepository.findByLanguage(dto.name)
