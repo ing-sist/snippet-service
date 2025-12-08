@@ -17,7 +17,8 @@ class UserService(
         email: String,
         token: String,
     ): List<UserResponseDTO> {
-        return authService.getUsers(email, token)
+        val allUsers = authService.getUsers("", token)
+        return allUsers.filter { it.email.contains(email, ignoreCase = true) }
     }
 
     fun updateUserConfig(

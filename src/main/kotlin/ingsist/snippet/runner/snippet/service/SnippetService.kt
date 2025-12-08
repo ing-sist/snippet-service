@@ -15,6 +15,7 @@ import ingsist.snippet.runner.snippet.dtos.ValidateReqDto
 import ingsist.snippet.runner.snippet.repository.SnippetRepository
 import ingsist.snippet.runner.snippet.repository.SnippetSpecification
 import ingsist.snippet.runner.snippet.repository.SnippetVersionRepository
+import ingsist.snippet.shared.exception.ExternalServiceException
 import ingsist.snippet.shared.exception.SnippetAccessDeniedException
 import ingsist.snippet.shared.exception.SnippetNotFoundException
 import jakarta.transaction.Transactional
@@ -24,6 +25,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
+import org.springframework.web.client.RestClientException
 import java.time.LocalDateTime
 import java.util.Date
 import java.util.UUID
@@ -36,6 +38,7 @@ class SnippetService(
     private val engineService: EngineService,
     private val permissionService: PermissionService,
     private val languageService: LanguageService,
+    private val rulesService: RulesService,
 ) {
     val log = LoggerFactory.getLogger(SnippetService::class.java)
 
@@ -100,6 +103,14 @@ class SnippetService(
                 }
 
                 log.info("Snippet with id: $snippetId updated successfully")
+
+                try {
+                    rulesService.lintSnippet(userId, updatedSnippet.id)
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    log.error("Error linting snippet $snippetId", e)
+                }
 
                 SnippetSubmissionResult.Success(
                     snippetId = updatedSnippet.id,
@@ -182,6 +193,14 @@ class SnippetService(
                 log.debug("Granted owner permission for user: {} on snippetId: {}", ownerId, snippetId)
 
                 log.info("Snippet created successfully with id: {}", snippetId)
+
+                try {
+                    rulesService.lintSnippet(ownerId, snippetId)
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    log.error("Error linting snippet $snippetId", e)
+                }
 
                 SnippetSubmissionResult.Success(
                     snippetId = snippetMetadata.id,
@@ -346,18 +365,42 @@ class SnippetService(
         val snippet =
             snippetRepository.findById(snippetId)
                 .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
-        log.debug("Found snippet with id: {}. Checking access permissions for user: {}", snippetId, userId)
 
         if (snippet.ownerId != userId) {
-            throw SnippetAccessDeniedException("You don't have permission to delete this snippet (not the owner)")
+            throw SnippetAccessDeniedException("You don't have permission to delete this snippet")
         }
 
         val assetKey = getSnippetAssetKeyById(snippetId)
-        engineService.deleteSnippet(assetKey)
-        log.info("Deleted snippet asset with key: {} from engine service", assetKey)
+
+        deleteFromEngine(assetKey)
+        deleteFromRepository(snippet)
+        deletePermissions(snippetId, token)
+    }
+
+    private fun deleteFromEngine(assetKey: String) {
+        try {
+            engineService.deleteSnippet(assetKey)
+            log.info("Deleted snippet asset with key: {} from engine service", assetKey)
+        } catch (e: ExternalServiceException) {
+            log.error("Failed to delete asset from Engine: ${e.message}")
+            throw RestClientException("Failed to delete snippet asset from Engine", e)
+        }
+    }
+
+    private fun deleteFromRepository(snippet: SnippetMetadata) {
         snippetRepository.delete(snippet)
-        log.info("Deleted snippet metadata with id: {} from repository", snippetId)
-        permissionService.deleteSnippetPermissions(snippetId, token)
-        log.info("Deleted snippet permissions for snippet id: {} from permission service", snippetId)
+        log.info("Deleted snippet metadata with id: {} from repository", snippet.id)
+    }
+
+    private fun deletePermissions(
+        snippetId: UUID,
+        token: String,
+    ) {
+        try {
+            permissionService.deleteSnippetPermissions(snippetId, token)
+            log.info("Deleted snippet permissions for snippet id: {} from permission service", snippetId)
+        } catch (e: ExternalServiceException) {
+            log.warn("Warning: Failed to delete permissions for snippet $snippetId. Error: ${e.message}")
+        }
     }
 }

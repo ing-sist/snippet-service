@@ -65,6 +65,32 @@ class RulesService(
         publishAllSnippetsForFormatting(userId, updatedConfig)
     }
 
+    fun lintSnippet(
+        userId: String,
+        snippetId: UUID,
+    ) {
+        log.info("Linting snippet $snippetId for user $userId")
+        val snippet =
+            snippetRepository.findById(snippetId)
+                .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
+
+        if (snippet.ownerId != userId) {
+            throw SnippetAccessDeniedException("You don't have permission to lint this snippet")
+        }
+
+        val config = userService.getUserConfig(userId)
+        val assetKey = getSnippetAssetKeyById(snippet.id)
+        lintingSnippetProducer.publishSnippet(
+            StreamReqDto(
+                snippet.id,
+                assetKey,
+                version = snippet.langVersion,
+                language = snippet.language,
+                config = config,
+            ),
+        )
+    }
+
     fun formatSnippet(
         userId: String,
         snippetId: UUID,
@@ -146,7 +172,7 @@ class RulesService(
                     StreamReqDto(
                         id = snippet.id,
                         assetKey = latestVersion.assetKey,
-                        version = latestVersion.versionId.toString(),
+                        version = snippet.langVersion,
                         language = snippet.language,
                         config = config,
                     )
@@ -169,7 +195,7 @@ class RulesService(
                     StreamReqDto(
                         id = snippet.id,
                         assetKey = latestVersion.assetKey,
-                        version = latestVersion.versionId.toString(),
+                        version = snippet.langVersion,
                         language = snippet.language,
                         config = config,
                     )

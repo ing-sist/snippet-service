@@ -193,21 +193,18 @@ class SnippetController(
     @PostMapping("/{id}/share")
     fun shareSnippet(
         @PathVariable id: UUID,
-        @RequestBody targetUserId: String,
+        @RequestBody targetUserId: Map<String, String>,
         principal: JwtAuthenticationToken,
     ): ResponseEntity<Void> {
         val userId = principal.token.subject
         val token = principal.token.tokenValue
-        log.info("Received request to share snippet ID: $id from user $userId to user $targetUserId")
+        val targetId = targetUserId["targetUserId"] ?: throw IllegalArgumentException("targetUserId is required")
+        log.info("Received request to share snippet ID: $id from user $userId to user $targetId")
 
-        snippetService.shareSnippet(id, targetUserId, userId, token)
-        log.info("Snippet ID: $id shared successfully from user $userId to user $targetUserId")
+        snippetService.shareSnippet(id, targetId, userId, token)
+        log.info("Snippet ID: $id shared successfully from user $userId to user $targetId")
         return ResponseEntity.ok().build()
     }
-
-    // US #12: Formatting automatico de snippets
-
-    // US #15: Linting automatico de snippets
 
     @GetMapping("/{id}/asset-key")
     fun getAssetKey(

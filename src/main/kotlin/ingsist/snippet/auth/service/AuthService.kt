@@ -25,7 +25,7 @@ class AuthService(
         return try {
             client.get()
                 .uri("/users?email={email}", email)
-                .header("Authorization", token)
+                .header("Authorization", "Bearer $token")
                 .retrieve()
                 .body(object : ParameterizedTypeReference<List<UserResponseDTO>>() {}) ?: emptyList()
         } catch (e: RestClientException) {
@@ -41,7 +41,7 @@ class AuthService(
         try {
             client.post()
                 .uri("/permissions")
-                .header("Authorization", token)
+                .header("Authorization", "Bearer $token")
                 .body(dto)
                 .retrieve()
                 .toBodilessEntity()
@@ -58,7 +58,7 @@ class AuthService(
         return try {
             client.get()
                 .uri("/permissions/user/{userId}", userId)
-                .header("Authorization", token)
+                .header("Authorization", "Bearer $token")
                 .retrieve()
                 .body(object : ParameterizedTypeReference<List<PermissionDTO>>() {}) ?: emptyList()
         } catch (e: RestClientException) {
@@ -77,7 +77,7 @@ class AuthService(
             val response =
                 client.get()
                     .uri("/permissions/snippet/{snippetId}?permission={permission}", snippetId, permission)
-                    .header("Authorization", token)
+                    .header("Authorization", "Bearer $token")
                     .retrieve()
                     .body(Boolean::class.java)
             response ?: false
@@ -92,8 +92,8 @@ class AuthService(
     ) {
         try {
             client.delete()
-                .uri("/snippet/{snippetId}", snippetId)
-                .header("Authorization", token)
+                .uri("/permissions/snippet/{snippetId}", snippetId)
+                .header("Authorization", "Bearer $token")
                 .retrieve()
                 .toBodilessEntity()
         } catch (e: RestClientException) {
