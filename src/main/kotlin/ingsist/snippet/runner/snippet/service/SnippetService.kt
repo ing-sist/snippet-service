@@ -101,7 +101,7 @@ class SnippetService(
         validateLanguage(snippet, languageService)?.let {
             log.info(
                 "Creating snippet failed: Language ${snippet.language} version ${snippet.langVersion} " +
-                        "is not supported",
+                    "is not supported",
             )
             return invalidSnippet(it)
         }
