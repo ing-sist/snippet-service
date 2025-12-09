@@ -49,7 +49,6 @@ class SnippetService(
 ) {
     val log = LoggerFactory.getLogger(SnippetService::class.java)
 
-    // US #2 & #4: Actualizar snippet (Owner Aware)
     fun updateSnippet(
         snippetId: UUID,
         snippet: SubmitSnippetDTO,
@@ -96,7 +95,6 @@ class SnippetService(
         }
     }
 
-    // US #1 & #3: Crear snippet (Con OwnerId)
     fun createSnippet(
         snippet: SubmitSnippetDTO,
         ownerId: String,
@@ -164,27 +162,17 @@ class SnippetService(
         )
     }
 
-    // US #5: Listar snippets
     fun getAllSnippets(
         userId: String,
         token: String,
         filter: SnippetFilterDTO,
     ): Page<SnippetResponseDTO> {
-        // 1. Obtener IDs compartidos desde Auth Service (solo si hace falta)
         val sharedIds = fetchSharedIds(userId, token, filter.mode)
-
-        // Caso borde: Si pide SHARED y no tiene nada compartido, retornar vacío
         if (filter.mode == "SHARED" && sharedIds.isEmpty()) {
             return Page.empty()
         }
-
-        // 2. Construir Specification Base según el MODO
         val spec = buildSpecification(userId, sharedIds, filter)
-
-        // 3. Construir Pageable con Ordenamiento (Sort)
         val pageable = buildPageable(filter)
-
-        // 4. Ejecutar consulta
         val resultPage = snippetRepository.findAll(spec, pageable)
 
         return resultPage.map { it.toDTO() }
@@ -262,6 +250,7 @@ class SnippetService(
         return engineService.execute(
             ExecuteReqDTO(
                 snippetId = snippet.id,
+                assetKey = latestVersion.assetKey,
                 inputs = inputs.toMutableList(),
                 version = latestVersion.versionTag,
                 language = snippet.language,
@@ -269,7 +258,6 @@ class SnippetService(
         )
     }
 
-    // US #6: Obtener snippet por ID
     fun getSnippetById(
         snippetId: UUID,
         userId: String,
@@ -303,7 +291,6 @@ class SnippetService(
         )
     }
 
-    // US #7: Compartir snippet
     fun shareSnippet(
         snippetId: UUID,
         targetUserId: String,
@@ -314,7 +301,6 @@ class SnippetService(
             snippetRepository.findById(snippetId)
                 .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
 
-        // Validación de Owner
         if (snippet.ownerId != ownerId) {
             throw SnippetAccessDeniedException("You don't have permission to share this snippet (not the owner)")
         }

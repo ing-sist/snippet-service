@@ -81,7 +81,7 @@ class SnippetTestService(
             snippetVersionRepository.findBySnippetIdAndVersionTag(snippetId, test.versionTag)
                 ?: return missingVersion(test)
 
-        val execution = execute(snippet, version.versionTag, test.inputs)
+        val execution = execute(snippet, version.versionTag, version.assetKey, test.inputs)
         val outputFailures = compareOutputs(test.expectedOutputs, execution.outputs)
         val status = if (execution.errors.isEmpty() && outputFailures.isEmpty()) RunStatus.SUCCESS else RunStatus.FAIL
         val engineFailures =
@@ -138,12 +138,14 @@ class SnippetTestService(
     private fun execute(
         snippet: SnippetMetadata,
         versionTag: String,
+        assetKey: String,
         inputs: List<String>,
     ): EngineExecution {
         val response =
             engineService.execute(
                 ExecuteReqDTO(
                     snippetId = snippet.id,
+                    assetKey = assetKey,
                     inputs = inputs.toMutableList(),
                     version = versionTag,
                     language = snippet.language,
