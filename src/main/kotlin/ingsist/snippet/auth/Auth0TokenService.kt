@@ -5,6 +5,7 @@ import ingsist.snippet.shared.exception.ExternalServiceException
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient
+import org.springframework.web.client.RestClientException
 
 data class Auth0TokenResponse(
     @JsonProperty("access_token") val accessToken: String,
@@ -31,12 +32,16 @@ class Auth0TokenService(
                 "grant_type" to "client_credentials",
             )
 
-        return restClient.post()
-            .uri(tokenUrl)
-            .header("Content-Type", "application/json")
-            .body(requestBody)
-            .retrieve()
-            .body(Auth0TokenResponse::class.java)
-            ?: throw ExternalServiceException("Failed to fetch M2M Token from Auth0")
+        try {
+            return restClient.post()
+                .uri(tokenUrl)
+                .header("Content-Type", "application/json")
+                .body(requestBody)
+                .retrieve()
+                .body(Auth0TokenResponse::class.java)
+                ?: throw ExternalServiceException("Failed to fetch M2M Token from Auth0")
+        } catch (e: RestClientException) {
+            throw ExternalServiceException("Failed to fetch M2M Token from Auth0: ${e.message}", e)
+        }
     }
 }
