@@ -1,13 +1,10 @@
 package ingsist.snippet.runner.snippet.dtos
 
+import com.fasterxml.jackson.annotation.JsonProperty
+
 data class OwnerConfigDto(
-    val noExpressionsInPrintLine: Boolean,
-    val noUnusedVars: Boolean,
-    val noUndefVars: Boolean,
-    val noUnusedParams: Boolean,
-    val indentation: Int,
-    val openIfBlockOnSameLine: Boolean,
-    val maxLineLength: Int,
-    val noTrailingSpaces: Boolean,
-    val noMultipleEmptyLines: Boolean,
+    @JsonProperty("linting")
+    val linting: LintingRulesDTO,
+    @JsonProperty("formatting")
+    val formatting: FormattingRulesDTO,
 )

@@ -2,6 +2,8 @@ package ingsist.snippet.runner.snippet.domain
 
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
+import jakarta.persistence.Embeddable
+import jakarta.persistence.Embedded
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -56,21 +58,37 @@ data class SnippetVersion(
     val snippet: SnippetMetadata,
 )
 
+@Embeddable
+data class LintingConfig(
+    val identifierNamingType: String,
+    val printlnSimpleArg: Boolean,
+    val readInputSimpleArg: Boolean,
+)
+
+@Embeddable
+data class FormattingConfig(
+    val indentation: Int,
+    val spaceBeforeColon: Boolean,
+    val spaceAfterColon: Boolean,
+    val spaceAroundAssignment: Boolean,
+    val spaceAroundOperators: Boolean,
+    val maxSpaceBetweenTokens: Boolean,
+    val lineBreakBeforePrintln: Int,
+    val lineBreakAfterSemiColon: Boolean,
+    val inlineBraceIfStatement: Boolean,
+    val belowLineBraceIfStatement: Boolean,
+    val braceLineBreak: Int,
+    val keywordSpacingAfter: Boolean,
+)
+
 @Entity
 @Table(name = "owners_config")
 data class OwnerConfig(
     @Id
     @Column(name = "owner_id")
     val ownerId: String,
-    // linting rules
-    val noExpressionsInPrintLine: Boolean,
-    val noUnusedVars: Boolean,
-    val noUndefVars: Boolean,
-    val noUnusedParams: Boolean,
-    // formatting rules
-    val indentation: Int,
-    val openIfBlockOnSameLine: Boolean,
-    val maxLineLength: Int,
-    val noTrailingSpaces: Boolean,
-    val noMultipleEmptyLines: Boolean,
+    @Embedded
+    val linting: LintingConfig,
+    @Embedded
+    val formatting: FormattingConfig,
 )

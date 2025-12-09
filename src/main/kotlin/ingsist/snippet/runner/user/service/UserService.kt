@@ -1,7 +1,11 @@
 package ingsist.snippet.runner.user.service
 
 import ingsist.snippet.auth.service.AuthService
+import ingsist.snippet.runner.snippet.domain.FormattingConfig
+import ingsist.snippet.runner.snippet.domain.LintingConfig
 import ingsist.snippet.runner.snippet.domain.OwnerConfig
+import ingsist.snippet.runner.snippet.dtos.FormattingRulesDTO
+import ingsist.snippet.runner.snippet.dtos.LintingRulesDTO
 import ingsist.snippet.runner.snippet.dtos.OwnerConfigDto
 import ingsist.snippet.runner.user.dtos.UserResponseDTO
 import ingsist.snippet.runner.user.repository.UserRepository
@@ -28,15 +32,27 @@ class UserService(
         val newConfig =
             OwnerConfig(
                 ownerId = ownerId,
-                noExpressionsInPrintLine = dto.noExpressionsInPrintLine,
-                noUnusedVars = dto.noUnusedVars,
-                noUndefVars = dto.noUndefVars,
-                noUnusedParams = dto.noUnusedParams,
-                indentation = dto.indentation,
-                openIfBlockOnSameLine = dto.openIfBlockOnSameLine,
-                maxLineLength = dto.maxLineLength,
-                noTrailingSpaces = dto.noTrailingSpaces,
-                noMultipleEmptyLines = dto.noMultipleEmptyLines,
+                linting =
+                    LintingConfig(
+                        identifierNamingType = dto.linting.identifierNamingType,
+                        printlnSimpleArg = dto.linting.printlnSimpleArg,
+                        readInputSimpleArg = dto.linting.readInputSimpleArg,
+                    ),
+                formatting =
+                    FormattingConfig(
+                        indentation = dto.formatting.indentation,
+                        spaceBeforeColon = dto.formatting.spaceBeforeColon,
+                        spaceAfterColon = dto.formatting.spaceAfterColon,
+                        spaceAroundAssignment = dto.formatting.spaceAroundAssignment,
+                        spaceAroundOperators = dto.formatting.spaceAroundOperators,
+                        maxSpaceBetweenTokens = dto.formatting.maxSpaceBetweenTokens,
+                        lineBreakBeforePrintln = dto.formatting.lineBreakBeforePrintln,
+                        lineBreakAfterSemiColon = dto.formatting.lineBreakAfterSemiColon,
+                        inlineBraceIfStatement = dto.formatting.inlineBraceIfStatement,
+                        belowLineBraceIfStatement = dto.formatting.belowLineBraceIfStatement,
+                        braceLineBreak = dto.formatting.braceLineBreak,
+                        keywordSpacingAfter = dto.formatting.keywordSpacingAfter,
+                    ),
             )
         return userRepository.save(newConfig)
     }
@@ -50,28 +66,52 @@ class UserService(
 
     private fun OwnerConfig.toDto(): OwnerConfigDto =
         OwnerConfigDto(
-            noExpressionsInPrintLine = this.noExpressionsInPrintLine,
-            noUnusedVars = this.noUnusedVars,
-            noUndefVars = this.noUndefVars,
-            noUnusedParams = this.noUnusedParams,
-            indentation = this.indentation,
-            openIfBlockOnSameLine = this.openIfBlockOnSameLine,
-            maxLineLength = this.maxLineLength,
-            noTrailingSpaces = this.noTrailingSpaces,
-            noMultipleEmptyLines = this.noMultipleEmptyLines,
+            linting =
+                LintingRulesDTO(
+                    identifierNamingType = this.linting.identifierNamingType,
+                    printlnSimpleArg = this.linting.printlnSimpleArg,
+                    readInputSimpleArg = this.linting.readInputSimpleArg,
+                ),
+            formatting =
+                FormattingRulesDTO(
+                    indentation = this.formatting.indentation,
+                    spaceBeforeColon = this.formatting.spaceBeforeColon,
+                    spaceAfterColon = this.formatting.spaceAfterColon,
+                    spaceAroundAssignment = this.formatting.spaceAroundAssignment,
+                    spaceAroundOperators = this.formatting.spaceAroundOperators,
+                    maxSpaceBetweenTokens = this.formatting.maxSpaceBetweenTokens,
+                    lineBreakBeforePrintln = this.formatting.lineBreakBeforePrintln,
+                    lineBreakAfterSemiColon = this.formatting.lineBreakAfterSemiColon,
+                    inlineBraceIfStatement = this.formatting.inlineBraceIfStatement,
+                    belowLineBraceIfStatement = this.formatting.belowLineBraceIfStatement,
+                    braceLineBreak = this.formatting.braceLineBreak,
+                    keywordSpacingAfter = this.formatting.keywordSpacingAfter,
+                ),
         )
 
     private fun createDefaultConfig(): OwnerConfigDto {
         return OwnerConfigDto(
-            noExpressionsInPrintLine = false,
-            noUnusedVars = true,
-            noUndefVars = true,
-            noUnusedParams = true,
-            indentation = 4,
-            openIfBlockOnSameLine = true,
-            maxLineLength = 80,
-            noTrailingSpaces = true,
-            noMultipleEmptyLines = true,
+            linting =
+                LintingRulesDTO(
+                    identifierNamingType = "camel",
+                    printlnSimpleArg = false,
+                    readInputSimpleArg = false,
+                ),
+            formatting =
+                FormattingRulesDTO(
+                    indentation = 2,
+                    spaceBeforeColon = false,
+                    spaceAfterColon = true,
+                    spaceAroundAssignment = true,
+                    spaceAroundOperators = true,
+                    maxSpaceBetweenTokens = false,
+                    lineBreakBeforePrintln = 0,
+                    lineBreakAfterSemiColon = true,
+                    inlineBraceIfStatement = false,
+                    belowLineBraceIfStatement = false,
+                    braceLineBreak = 1,
+                    keywordSpacingAfter = true,
+                ),
         )
     }
 }

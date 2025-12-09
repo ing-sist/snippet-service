@@ -1,8 +1,12 @@
 package ingsist.snippet.runner.snippet.dtos
 
+import com.fasterxml.jackson.annotation.JsonProperty
+
 data class LintingRulesDTO(
-    val noExpressionsInPrintLine: Boolean,
-    val noUnusedVars: Boolean,
-    val noUndefVars: Boolean,
-    val noUnusedParams: Boolean,
+    @JsonProperty("identifierNamingType")
+    val identifierNamingType: String,
+    @JsonProperty("printlnSimpleArg")
+    val printlnSimpleArg: Boolean,
+    @JsonProperty("readInputSimpleArg")
+    val readInputSimpleArg: Boolean,
 )

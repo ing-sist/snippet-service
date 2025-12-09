@@ -37,10 +37,7 @@ class RulesService(
         val currentConfig = userService.getUserConfig(userId)
         val updatedConfig =
             currentConfig.copy(
-                noExpressionsInPrintLine = newRules.noExpressionsInPrintLine,
-                noUnusedVars = newRules.noUnusedVars,
-                noUndefVars = newRules.noUndefVars,
-                noUnusedParams = newRules.noUnusedParams,
+                linting = newRules,
             )
         userService.updateUserConfig(userId, updatedConfig)
         publishAllSnippetsForLinting(userId, updatedConfig)
@@ -55,11 +52,7 @@ class RulesService(
         val currentConfig = userService.getUserConfig(userId)
         val updatedConfig =
             currentConfig.copy(
-                indentation = newRules.indentation,
-                openIfBlockOnSameLine = newRules.openIfBlockOnSameLine,
-                maxLineLength = newRules.maxLineLength,
-                noTrailingSpaces = newRules.noTrailingSpaces,
-                noMultipleEmptyLines = newRules.noMultipleEmptyLines,
+                formatting = newRules,
             )
         userService.updateUserConfig(userId, updatedConfig)
         publishAllSnippetsForFormatting(userId, updatedConfig)
@@ -131,23 +124,12 @@ class RulesService(
 
     fun getLintingRules(userId: String): LintingRulesDTO {
         val config = userService.getUserConfig(userId)
-        return LintingRulesDTO(
-            noExpressionsInPrintLine = config.noExpressionsInPrintLine,
-            noUnusedVars = config.noUnusedVars,
-            noUndefVars = config.noUndefVars,
-            noUnusedParams = config.noUnusedParams,
-        )
+        return config.linting
     }
 
     fun getFormattingRules(userId: String): FormattingRulesDTO {
         val config = userService.getUserConfig(userId)
-        return FormattingRulesDTO(
-            indentation = config.indentation,
-            openIfBlockOnSameLine = config.openIfBlockOnSameLine,
-            maxLineLength = config.maxLineLength,
-            noTrailingSpaces = config.noTrailingSpaces,
-            noMultipleEmptyLines = config.noMultipleEmptyLines,
-        )
+        return config.formatting
     }
 
     private fun getSnippetAssetKeyById(snippetId: UUID): String {
