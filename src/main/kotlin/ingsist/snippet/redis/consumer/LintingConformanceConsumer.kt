@@ -3,6 +3,7 @@ package ingsist.snippet.redis.consumer
 import com.fasterxml.jackson.databind.ObjectMapper
 import ingsist.snippet.runner.snippet.dtos.LintingConformanceStatusDTO
 import org.austral.ingsis.redis.RedisStreamConsumer
+import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
@@ -23,6 +24,10 @@ class LintingConformanceConsumer
         private val conformanceStreamService: ConsumerConformanceStreamService,
         private val objectMapper: ObjectMapper,
     ) : RedisStreamConsumer<String>(streamKey, groupId, redis) {
+        companion object {
+            private const val CORRELATION_ID_KEY = "correlation-id"
+        }
+
         override fun options(): StreamReceiver.StreamReceiverOptions<
             String,
             ObjectRecord<String, String>,
@@ -36,6 +41,16 @@ class LintingConformanceConsumer
         override fun onMessage(record: ObjectRecord<String, String>) {
             val json = record.value
             val dto = objectMapper.readValue(json, LintingConformanceStatusDTO::class.java)
-            conformanceStreamService.saveConformance(dto)
+            val corrId = dto.correlationId
+            if (corrId != null) {
+                MDC.put(CORRELATION_ID_KEY, corrId)
+            }
+            try {
+                conformanceStreamService.saveConformance(dto)
+            } finally {
+                if (corrId != null) {
+                    MDC.remove(CORRELATION_ID_KEY)
+                }
+            }
         }
     }
