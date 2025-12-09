@@ -28,7 +28,7 @@ class SecurityConfig(
             .csrf { it.disable() }
             .authorizeHttpRequests { auth ->
                 auth
-                    .requestMatchers("/health", "/actuator/**").permitAll()
+                    .requestMatchers("/health/error", "/actuator/**").permitAll()
                     .anyRequest().authenticated()
             }
             .oauth2ResourceServer { oauth2 ->
