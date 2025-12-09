@@ -7,4 +7,5 @@ data class StreamReqDto(
     val version: String,
     val language: String,
     val config: OwnerConfigDto,
+    val correlationId: String? = null,
 )

@@ -6,4 +6,5 @@ import java.util.UUID
 data class LintingConformanceStatusDTO(
     val snippetId: UUID,
     val status: ConformanceStatus,
+    val correlationId: String? = null,
 )
