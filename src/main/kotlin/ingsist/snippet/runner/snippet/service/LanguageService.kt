@@ -28,12 +28,15 @@ class LanguageService(
     }
 
     private fun updateLanguages(languages: List<SupportedLanguageDto>) {
-        languages.forEach { dto ->
+        languages.distinctBy { it.name }.forEach { dto ->
             val existingConfig = languageRepository.findByLanguage(dto.name)
+            val newVersions = dto.version.distinct()
 
             if (existingConfig != null) {
-                if (existingConfig.versions != dto.version || existingConfig.extension != dto.extension) {
-                    existingConfig.versions = dto.version
+                if (existingConfig.versions.toSet() != newVersions.toSet() ||
+                    existingConfig.extension != dto.extension
+                ) {
+                    existingConfig.versions = newVersions
                     existingConfig.extension = dto.extension
                     languageRepository.save(existingConfig)
                 }
@@ -41,7 +44,7 @@ class LanguageService(
                 languageRepository.save(
                     LanguageConfig(
                         language = dto.name,
-                        versions = dto.version,
+                        versions = newVersions,
                         extension = dto.extension,
                     ),
                 )

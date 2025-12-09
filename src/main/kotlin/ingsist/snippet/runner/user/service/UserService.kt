@@ -29,32 +29,39 @@ class UserService(
         ownerId: String,
         dto: OwnerConfigDto,
     ): OwnerConfig {
-        val newConfig =
-            OwnerConfig(
-                ownerId = ownerId,
-                linting =
-                    LintingConfig(
-                        identifierNamingType = dto.linting.identifierNamingType,
-                        printlnSimpleArg = dto.linting.printlnSimpleArg,
-                        readInputSimpleArg = dto.linting.readInputSimpleArg,
-                    ),
-                formatting =
-                    FormattingConfig(
-                        indentation = dto.formatting.indentation,
-                        spaceBeforeColon = dto.formatting.spaceBeforeColon,
-                        spaceAfterColon = dto.formatting.spaceAfterColon,
-                        spaceAroundAssignment = dto.formatting.spaceAroundAssignment,
-                        spaceAroundOperators = dto.formatting.spaceAroundOperators,
-                        maxSpaceBetweenTokens = dto.formatting.maxSpaceBetweenTokens,
-                        lineBreakBeforePrintln = dto.formatting.lineBreakBeforePrintln,
-                        lineBreakAfterSemiColon = dto.formatting.lineBreakAfterSemiColon,
-                        inlineBraceIfStatement = dto.formatting.inlineBraceIfStatement,
-                        belowLineBraceIfStatement = dto.formatting.belowLineBraceIfStatement,
-                        braceLineBreak = dto.formatting.braceLineBreak,
-                        keywordSpacingAfter = dto.formatting.keywordSpacingAfter,
-                    ),
+        val lintingConfig =
+            LintingConfig(
+                identifierNamingType = dto.linting.identifierNamingType,
+                printlnSimpleArg = dto.linting.printlnSimpleArg,
+                readInputSimpleArg = dto.linting.readInputSimpleArg,
             )
-        return userRepository.save(newConfig)
+        val formattingConfig =
+            FormattingConfig(
+                indentation = dto.formatting.indentation,
+                spaceBeforeColon = dto.formatting.spaceBeforeColon,
+                spaceAfterColon = dto.formatting.spaceAfterColon,
+                spaceAroundAssignment = dto.formatting.spaceAroundAssignment,
+                spaceAroundOperators = dto.formatting.spaceAroundOperators,
+                maxSpaceBetweenTokens = dto.formatting.maxSpaceBetweenTokens,
+                lineBreakBeforePrintln = dto.formatting.lineBreakBeforePrintln,
+                lineBreakAfterSemiColon = dto.formatting.lineBreakAfterSemiColon,
+                inlineBraceIfStatement = dto.formatting.inlineBraceIfStatement,
+                belowLineBraceIfStatement = dto.formatting.belowLineBraceIfStatement,
+                braceLineBreak = dto.formatting.braceLineBreak,
+                keywordSpacingAfter = dto.formatting.keywordSpacingAfter,
+            )
+
+        val existingConfig = userRepository.findByIdOrNull(ownerId)
+        val configToSave =
+            existingConfig?.copy(
+                linting = lintingConfig,
+                formatting = formattingConfig,
+            ) ?: OwnerConfig(
+                ownerId = ownerId,
+                linting = lintingConfig,
+                formatting = formattingConfig,
+            )
+        return userRepository.save(configToSave)
     }
 
     open fun getUserConfig(ownerId: String): OwnerConfigDto {
