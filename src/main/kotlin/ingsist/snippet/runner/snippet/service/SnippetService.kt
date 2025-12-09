@@ -5,11 +5,12 @@ import ingsist.snippet.runner.snippet.domain.SnippetMetadata
 import ingsist.snippet.runner.snippet.domain.SnippetSubmissionResult
 import ingsist.snippet.runner.snippet.domain.ValidationResult
 import ingsist.snippet.runner.snippet.domain.processEngineResult
+import ingsist.snippet.runner.snippet.dtos.ExecuteReqDTO
+import ingsist.snippet.runner.snippet.dtos.ExecuteResDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetDetailsDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetFilterDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetResponseDTO
 import ingsist.snippet.runner.snippet.dtos.SubmitSnippetDTO
-import ingsist.snippet.runner.snippet.dtos.ValidateReqDto
 import ingsist.snippet.runner.snippet.helpers.adjustedAssetKey
 import ingsist.snippet.runner.snippet.helpers.assetKeyForLanguage
 import ingsist.snippet.runner.snippet.helpers.createMetadata
@@ -74,7 +75,7 @@ class SnippetService(
             )
         val request = validateRequest(snippet, assetKey, snippetMetadata.id)
 
-        return when (val validationResult = validateSnippet(request)) {
+        return when (val validationResult = processEngineResult(engineService.parse(request))) {
             is ValidationResult.Invalid -> {
                 log.info("Snippet validation with id $snippetId failed: ${validationResult.message}")
                 SnippetSubmissionResult.InvalidSnippet(validationResult.message)
@@ -113,7 +114,7 @@ class SnippetService(
         val assetKey = assetKeyForLanguage(snippetId, snippet.language, languageService)
         val request = validateRequest(snippet, assetKey, snippetId)
 
-        return when (val validationResult = validateSnippet(request)) {
+        return when (val validationResult = processEngineResult(engineService.parse(request))) {
             is ValidationResult.Invalid -> {
                 log.info("Snippet validation failed: ${validationResult.message}")
                 SnippetSubmissionResult.InvalidSnippet(validationResult.message)
@@ -163,10 +164,6 @@ class SnippetService(
         )
     }
 
-    private fun validateSnippet(snippet: ValidateReqDto): ValidationResult {
-        return processEngineResult(engineService.parse(snippet))
-    }
-
     // US #5: Listar snippets
     fun getAllSnippets(
         userId: String,
@@ -174,12 +171,7 @@ class SnippetService(
         filter: SnippetFilterDTO,
     ): Page<SnippetResponseDTO> {
         // 1. Obtener IDs compartidos desde Auth Service (solo si hace falta)
-        val sharedIds: List<UUID> =
-            if (filter.mode == "SHARED" || filter.mode == "ALL") {
-                permissionService.getSharedSnippetIds(userId, token)
-            } else {
-                emptyList()
-            }
+        val sharedIds = fetchSharedIds(userId, token, filter.mode)
 
         // Caso borde: Si pide SHARED y no tiene nada compartido, retornar vacío
         if (filter.mode == "SHARED" && sharedIds.isEmpty()) {
@@ -187,30 +179,94 @@ class SnippetService(
         }
 
         // 2. Construir Specification Base según el MODO
-        var spec: Specification<SnippetMetadata> =
-            when (filter.mode) {
-                "SHARED" -> SnippetSpecification.isShared(sharedIds) // Solo IDs compartidos
-                "OWNED" -> SnippetSpecification.isOwned(userId) // Solo OwnerId = userId
-                else -> SnippetSpecification.hasAccess(userId, sharedIds) // (Owner OR Shared) -> ALL
-            }
-
-        SnippetSpecification.nameContains(filter.name)?.let { spec = spec.and(it) }
-        SnippetSpecification.languageEquals(filter.language)?.let { spec = spec.and(it) }
-        SnippetSpecification.conformanceEquals(filter.conformance)?.let { spec = spec.and(it) }
+        val spec = buildSpecification(userId, sharedIds, filter)
 
         // 3. Construir Pageable con Ordenamiento (Sort)
-        val direction = if (filter.dir.equals("ASC", ignoreCase = true)) Sort.Direction.ASC else Sort.Direction.DESC
-
-        // Validamos que el campo sea seguro para ordenar, sino default createdAt
-        val validSortFields = listOf("name", "language", "conformance", "createdAt")
-        val finalSortField = if (validSortFields.contains(filter.sort)) filter.sort else "createdAt"
-
-        val pageable = PageRequest.of(filter.page, filter.size, Sort.by(direction, finalSortField))
+        val pageable = buildPageable(filter)
 
         // 4. Ejecutar consulta
         val resultPage = snippetRepository.findAll(spec, pageable)
 
         return resultPage.map { it.toDTO() }
+    }
+
+    private fun fetchSharedIds(
+        userId: String,
+        token: String,
+        mode: String,
+    ): List<UUID> {
+        return if (mode == "SHARED" || mode == "ALL") {
+            try {
+                permissionService.getSharedSnippetIds(userId, token)
+            } catch (e: ExternalServiceException) {
+                log.error("Error fetching shared snippets", e)
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    private fun buildSpecification(
+        userId: String,
+        sharedIds: List<UUID>,
+        filter: SnippetFilterDTO,
+    ): Specification<SnippetMetadata> {
+        var spec: Specification<SnippetMetadata> =
+            when (filter.mode) {
+                "SHARED" -> SnippetSpecification.isShared(sharedIds)
+                "OWNED" -> SnippetSpecification.isOwned(userId)
+                else -> {
+                    if (sharedIds.isEmpty()) {
+                        SnippetSpecification.isOwned(userId)
+                    } else {
+                        SnippetSpecification.hasAccess(userId, sharedIds)
+                    }
+                }
+            }
+
+        SnippetSpecification.nameContains(filter.name)?.let { spec = spec.and(it) }
+        SnippetSpecification.languageEquals(filter.language)?.let { spec = spec.and(it) }
+        SnippetSpecification.conformanceEquals(filter.conformance)?.let { spec = spec.and(it) }
+        return spec
+    }
+
+    private fun buildPageable(filter: SnippetFilterDTO): PageRequest {
+        val direction = if (filter.dir.equals("ASC", ignoreCase = true)) Sort.Direction.ASC else Sort.Direction.DESC
+        val validSortFields = listOf("name", "language", "conformance", "createdAt")
+        val finalSortField = if (validSortFields.contains(filter.sort)) filter.sort else "createdAt"
+        return PageRequest.of(filter.page, filter.size, Sort.by(direction, finalSortField))
+    }
+
+    fun runSnippet(
+        snippetId: UUID,
+        userId: String,
+        token: String,
+        inputs: List<String>,
+    ): ExecuteResDTO {
+        val snippet =
+            snippetRepository.findById(snippetId)
+                .orElseThrow { SnippetNotFoundException("Snippet with id $snippetId not found") }
+
+        if (snippet.ownerId != userId) {
+            if (!permissionService.hasReadPermission(snippetId, token)) {
+                throw SnippetAccessDeniedException("You don't have permission to access this snippet")
+            }
+        }
+
+        val latestVersion =
+            snippetVersionRepository.findLatestBySnippetId(snippetId, PageRequest.of(0, 1)).content
+                .firstOrNull()
+                ?: throw SnippetNotFoundException("Snippet with id $snippetId not found")
+
+        return engineService.execute(
+            ExecuteReqDTO(
+                snippetId = snippet.id,
+                inputs = inputs.toMutableList(),
+                version = latestVersion.versionTag,
+                language = snippet.language,
+            ),
+        )
     }
 
     // US #6: Obtener snippet por ID
@@ -310,12 +366,6 @@ class SnippetService(
 
         val assetKey = getSnippetAssetKeyById(snippetId)
 
-        deleteFromEngine(assetKey)
-        deleteFromRepository(snippet)
-        deletePermissions(snippetId, token)
-    }
-
-    private fun deleteFromEngine(assetKey: String) {
         try {
             engineService.deleteSnippet(assetKey)
             log.info("Deleted snippet asset with key: {} from engine service", assetKey)
@@ -323,17 +373,10 @@ class SnippetService(
             log.error("Failed to delete asset from Engine: ${e.message}")
             throw e
         }
-    }
 
-    private fun deleteFromRepository(snippet: SnippetMetadata) {
         snippetRepository.delete(snippet)
         log.info("Deleted snippet metadata with id: {} from repository", snippet.id)
-    }
 
-    private fun deletePermissions(
-        snippetId: UUID,
-        token: String,
-    ) {
         try {
             permissionService.deleteSnippetPermissions(snippetId, token)
             log.info("Deleted snippet permissions for snippet id: {} from permission service", snippetId)

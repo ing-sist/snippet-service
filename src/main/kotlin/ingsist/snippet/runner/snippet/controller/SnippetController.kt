@@ -2,6 +2,8 @@ package ingsist.snippet.runner.snippet.controller
 
 import ingsist.snippet.engine.EngineService
 import ingsist.snippet.runner.snippet.domain.SnippetSubmissionResult
+import ingsist.snippet.runner.snippet.dtos.ExecuteResDTO
+import ingsist.snippet.runner.snippet.dtos.RunSnippetDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetDetailsDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetFilterDTO
 import ingsist.snippet.runner.snippet.dtos.SnippetResponseDTO
@@ -39,7 +41,6 @@ class SnippetController(
 ) {
     val log = LoggerFactory.getLogger(SnippetController::class.java)
 
-    // US #1: Crear snippet (Upload file)
     @PostMapping("/upload-from-file")
     fun uploadSnippetFromFile(
         @RequestParam("file") file: MultipartFile,
@@ -54,7 +55,6 @@ class SnippetController(
         return result
     }
 
-    // US #3: Crear snippet (Editor)
     @PostMapping("/upload-inline")
     fun uploadSnippetInline(
         @RequestBody code: String,
@@ -68,7 +68,6 @@ class SnippetController(
         return result
     }
 
-    // Lógica común de creación
     private fun uploadSnippetLogic(
         code: String,
         params: SnippetUploadDTO,
@@ -84,7 +83,6 @@ class SnippetController(
                 params.description,
                 params.versionTag ?: "",
             )
-        // Pasamos el ownerId al servicio
         val result = snippetService.createSnippet(snippet, ownerId, token)
 
         return when (result) {
@@ -99,8 +97,7 @@ class SnippetController(
         }
     }
 
-    // US #2 & #4: Actualizar snippet
-    @PutMapping("/{id}") // Cambiado a PUT y con ID en path por convención REST
+    @PutMapping("/{id}")
     fun updateSnippet(
         @PathVariable id: UUID,
         @RequestBody @Valid snippet: SubmitSnippetDTO,
@@ -108,7 +105,6 @@ class SnippetController(
     ): ResponseEntity<Any> {
         val userId = principal.token.subject
         log.info("Received update request for snippet ID: $id by user $userId")
-        // Validamos propiedad en el servicio
         val result = snippetService.updateSnippet(id, snippet, userId)
 
         return when (result) {
@@ -123,7 +119,6 @@ class SnippetController(
         }
     }
 
-    // US #13: Descargar Snippet
     @GetMapping("/{id}/download")
     fun downloadSnippet(
         @PathVariable id: UUID,
@@ -133,22 +128,17 @@ class SnippetController(
         val token = principal.token.tokenValue
 
         log.info("Received download request for snippet ID: $id by user $userId")
-        // 1. Obtener Asset Key (validando permisos)
         val assetKey = snippetService.getSnippetForDownload(id, userId, token)
         log.debug("Asset Key fetched for snippet ID {}: {}", id, assetKey)
-        // 2. Obtener contenido desde Engine
         val code = engineService.getSnippetContent(assetKey)
         val resource = ByteArrayResource(code.toByteArray())
-
         log.info("Preparing download response...")
-
         log.info(
             "Successfully prepared download for snippet {} for user {} (assetKey={})",
             id,
             userId,
             assetKey,
         )
-        // 3. Retornar archivo descargable (usar assetKey como filename para respetar extensión)
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${assetKey}\"")
             .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -156,8 +146,6 @@ class SnippetController(
             .body(resource)
     }
 
-    // US #5: Listar snippets (Propios + Compartidos)
-    // Sigue el estilo de listAccessible del ejemplo
     @GetMapping
     fun getAllSnippets(
         principal: JwtAuthenticationToken,
@@ -175,7 +163,6 @@ class SnippetController(
         return ResponseEntity.ok(snippets)
     }
 
-    // US #6: Detalle de un snippet
     @GetMapping("/{id}")
     fun getSnippet(
         @PathVariable id: UUID,
@@ -189,7 +176,6 @@ class SnippetController(
         return ResponseEntity.ok(snippet)
     }
 
-    // US #7: Compartir snippet
     @PostMapping("/{id}/share")
     fun shareSnippet(
         @PathVariable id: UUID,
@@ -204,6 +190,19 @@ class SnippetController(
         snippetService.shareSnippet(id, targetId, userId, token)
         log.info("Snippet ID: $id shared successfully from user $userId to user $targetId")
         return ResponseEntity.ok().build()
+    }
+
+    @PostMapping("/{id}/run")
+    fun runSnippet(
+        @PathVariable id: UUID,
+        @RequestBody request: RunSnippetDTO,
+        principal: JwtAuthenticationToken,
+    ): ResponseEntity<ExecuteResDTO> {
+        val userId = principal.token.subject
+        val token = principal.token.tokenValue
+        log.info("Received request to run snippet ID: $id by user $userId")
+        val result = snippetService.runSnippet(id, userId, token, request.inputs)
+        return ResponseEntity.ok(result)
     }
 
     @GetMapping("/{id}/asset-key")
