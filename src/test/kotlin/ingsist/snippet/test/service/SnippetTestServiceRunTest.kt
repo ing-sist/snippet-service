@@ -84,7 +84,6 @@ class SnippetTestServiceRunTest {
         whenever(
             snippetVersionRepository.findBySnippetIdAndVersionTag(snippetId, version.versionTag),
         ).thenReturn(version)
-        whenever(engineService.getSnippetContent(version.assetKey)).thenReturn("printscript code")
         whenever(engineService.execute(any<ExecuteReqDTO>())).thenReturn(execution)
 
         val result =
@@ -154,7 +153,6 @@ class SnippetTestServiceRunTest {
         whenever(
             snippetVersionRepository.findBySnippetIdAndVersionTag(snippetId, version.versionTag),
         ).thenReturn(version)
-        whenever(engineService.getSnippetContent(version.assetKey)).thenReturn("printscript code")
         whenever(engineService.execute(any<ExecuteReqDTO>())).thenReturn(execution)
 
         val result =
@@ -198,7 +196,6 @@ class SnippetTestServiceRunTest {
         whenever(
             snippetVersionRepository.findBySnippetIdAndVersionTag(snippetId, version.versionTag),
         ).thenReturn(version)
-        whenever(engineService.getSnippetContent(version.assetKey)).thenReturn("printscript code")
         whenever(engineService.execute(any<ExecuteReqDTO>())).thenReturn(execution)
 
         val result =
