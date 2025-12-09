@@ -5,6 +5,7 @@ import ingsist.snippet.runner.user.dtos.UserResponseDTO
 import ingsist.snippet.shared.exception.ExternalServiceException
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
@@ -42,6 +43,7 @@ class AuthService(
             client.post()
                 .uri("/permissions")
                 .header("Authorization", "Bearer $token")
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(dto)
                 .retrieve()
                 .toBodilessEntity()

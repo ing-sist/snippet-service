@@ -36,3 +36,14 @@ jobs:
           build-args: |
             USERNAME=${{ secrets.USERNAME }}
             TOKEN=${{ secrets.TOKEN }}
+      - name: Deploy to Development VM
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SNIPPET_VM_DEV_IP }}
+          username: ${{ secrets.SNIPPET_VM_DEV_USER }}
+          key: ${{ secrets.SNIPPET_VM_DEV_SSH_KEY }}
+          script: |
+              cd infra
+              docker-compose -f docker-compose.dev.yml down
+              docker pull ghcr.io/${{github.repository}}:${{github.ref_name}}-latest
+              docker-compose -f docker-compose.dev.yml up -d
